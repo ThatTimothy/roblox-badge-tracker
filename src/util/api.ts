@@ -6,8 +6,9 @@ const HEADERS = {
 
 const GAMES_API = "https://games.roblox.com"
 const BADGES_API = "https://badges.roblox.com"
+const THUMBNAILS_API = "https://thumbnails.roblox.com"
 
-interface Badge {
+export interface Badge {
 	id: number
 	name: string
 	statistics: {
@@ -20,7 +21,12 @@ interface Badge {
 	}
 }
 
-interface Place {
+export interface BadgeIcon {
+	targetId: number
+	imageUrl: string
+}
+
+export interface Place {
 	universeId: number
 	name: string
 }
@@ -74,6 +80,24 @@ export async function getBadge(badgeId: number): Promise<Badge> {
 
 	const json = await res.json()
 	return json
+}
+
+export async function getBadgeIcons(badgeIds: number[]): Promise<BadgeIcon[]> {
+	const url = new URL(`${THUMBNAILS_API}/v1/badges/icons`)
+	url.searchParams.append("size", "150x150")
+	url.searchParams.append("format", "Png")
+	for (const badgeId of badgeIds) {
+		url.searchParams.append("badgeIds", badgeId.toString())
+	}
+	const res = await fetch(url, { headers: HEADERS })
+
+	if (!res.ok) {
+		console.error(res.status, await res.text())
+		process.exit(1)
+	}
+
+	const json = await res.json()
+	return json.data
 }
 
 export async function getPlaceDetails(placeId: number): Promise<Place> {
