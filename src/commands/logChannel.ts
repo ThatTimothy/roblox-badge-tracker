@@ -22,8 +22,5 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	const stored = await getStored()
 	const channel = interaction.options.getChannel("channel", true)
 	stored.logChannel = channel.id
-	await interaction.reply({
-		content: `Set the log channel to <#${channel.id}>`,
-		flags: MessageFlags.Ephemeral,
-	})
+	await interaction.reply(`Set the log channel to <#${channel.id}>`)
 }
