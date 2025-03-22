@@ -1,13 +1,8 @@
 import {
-	ActionRowBuilder,
-	ButtonBuilder,
-	ButtonStyle,
 	Client,
-	ComponentType,
 	EmbedBuilder,
 	Events,
 	GatewayIntentBits,
-	MessageActionRowComponentBuilder,
 	MessageFlags,
 	SendableChannels,
 } from "discord.js"

@@ -19,6 +19,7 @@ export async function readCommands(): Promise<Record<string, Command>> {
 	for (const file of commandFiles) {
 		const filePath = path.join(foldersPath, file)
 		// Grab the SlashCommandBuilder#toJSON() output of each command's data for deployment
+		// eslint-disable-next-line @typescript-eslint/no-require-imports
 		const command = require(filePath)
 		const data = command.data as SlashCommandBuilder
 		const execute = command.execute
