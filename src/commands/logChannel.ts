@@ -1,9 +1,7 @@
 import {
 	ChatInputCommandInteraction,
-	MessageFlags,
 	PermissionFlagsBits,
 	SlashCommandBuilder,
-	SlashCommandChannelOption,
 } from "discord.js"
 import { getStored } from "../util/store"
 

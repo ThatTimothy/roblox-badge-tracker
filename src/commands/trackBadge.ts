@@ -1,7 +1,6 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js"
 import { getStored } from "../util/store"
 import { getBadge, getBadgeIcons } from "../util/api"
-import Config from "../util/config"
 import { getImageColor } from "../util/color"
 
 export const data = new SlashCommandBuilder()
