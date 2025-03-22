@@ -1,4 +1,16 @@
-import { Client, Events, GatewayIntentBits, MessageFlags } from "discord.js"
+import {
+	ActionRowBuilder,
+	ButtonBuilder,
+	ButtonStyle,
+	Client,
+	ComponentType,
+	EmbedBuilder,
+	Events,
+	GatewayIntentBits,
+	MessageActionRowComponentBuilder,
+	MessageFlags,
+	SendableChannels,
+} from "discord.js"
 import Config from "./util/config"
 import { getStored, store } from "./util/store"
 import { readCommands } from "./util/commands"
@@ -8,32 +20,68 @@ const client = new Client({
 	intents: [GatewayIntentBits.GuildMessages],
 })
 
-let queue: number[] = []
-async function track() {
+async function getLogChannel(): Promise<SendableChannels | undefined> {
 	const stored = await getStored()
 	if (!stored.logChannel) return
 	const channel = await client.channels.fetch(stored.logChannel)
 	if (!channel) return
 	if (!channel.isSendable()) return
+	return channel
+}
 
-	if (queue.length === 0) {
-		queue = Object.keys(stored.tracking).map((s) => parseInt(s))
-	}
-
-	const id = queue.pop() as number
+async function fetchBadge(id: number) {
 	console.log(`Fetching ${id} (${queue.length} left in queue)`)
 	const badge = await getBadge(id)
 
-	const previous = stored.badgeAwardData[id]
-	const now = badge.statistics.awardedCount
-	stored.tracking[id] = Date.now()
-	if (previous != now) {
-		stored.badgeAwardData[id] = now
-		await channel.send(
-			`Updated stats for [${badge.name}](<https://roblox.com/badges/${badge.id}>) ([${badge.awardingUniverse.name}](<https://roblox.com/games/${badge.awardingUniverse.rootPlaceId}>)): ${previous} -> ${now} awarded`
-		)
+	const stored = await getStored()
+	const previous = stored.badgeData[id]
+	const previousAwarded = previous.statistics.awardedCount
+	const nowAwarded = badge.statistics.awardedCount
+	if (nowAwarded > previousAwarded) {
+		stored.badgeData[id] = {
+			...previous,
+			...badge,
+		}
+		console.log(`Updated ${id}`)
+		const channel = await getLogChannel()
+		if (channel) {
+			await channel.send({
+				embeds: [
+					new EmbedBuilder()
+						.setTitle(badge.name)
+						.setURL(`https://roblox.com/badges/${badge.id}`)
+						.setDescription(
+							`in [**${badge.awardingUniverse.name}**](https://roblox.com/games/${badge.awardingUniverse.rootPlaceId})`
+						)
+						.setThumbnail(previous.imageUrl)
+						.setColor(previous.imageColor)
+						.addFields([
+							{
+								name: "Awarded",
+								value: `${previousAwarded} → ${nowAwarded} (+${nowAwarded - previousAwarded})`,
+							},
+						]),
+				],
+			})
+			console.log(`Logged ${id}`)
+		}
+	} else {
+		console.log(`No updates for ${id}`)
 	}
-	console.log(`Logged ${id}...`)
+}
+
+let queue: number[] = []
+async function track() {
+	const stored = await getStored()
+
+	if (queue.length === 0) {
+		queue = Object.values(stored.badgeData).map((badge) => badge.id)
+	}
+
+	const id = queue.pop()
+	if (id) {
+		await fetchBadge(id)
+	}
 
 	setTimeout(track, Config.CHECK_INTERVAL_MS)
 }

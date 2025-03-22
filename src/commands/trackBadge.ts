@@ -1,7 +1,8 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js"
 import { getStored } from "../util/store"
-import { getBadge, getBadges, getPlaceDetails } from "../util/api"
+import { getBadge, getBadgeIcons } from "../util/api"
 import Config from "../util/config"
+import { getImageColor } from "../util/color"
 
 export const data = new SlashCommandBuilder()
 	.setName("track-badge")
@@ -25,11 +26,17 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	const id = parseInt(match[0])
 	const badge = await getBadge(id)
+	const icons = await getBadgeIcons([id])
+	const imageUrl = icons[0].imageUrl
+	const imageColor = await getImageColor(imageUrl)
 
 	const stored = await getStored()
-	if (!stored.tracking[id]) {
-		stored.tracking[id] = Date.now()
-		stored.badgeAwardData[id] = badge.statistics.awardedCount
+	if (!stored.badgeData[id]) {
+		stored.badgeData[id] = {
+			imageUrl,
+			imageColor,
+			...badge,
+		}
 	}
 
 	interaction.editReply(

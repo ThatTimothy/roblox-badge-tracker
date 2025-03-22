@@ -22,14 +22,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 	const id = parseInt(match[0])
 	const stored = await getStored()
-	if (!stored.tracking[id]) {
+	if (!stored.badgeData[id]) {
 		return await interaction.reply("Not tracking that badge!")
 	}
 
 	const badge = await getBadge(id)
 
-	delete stored.tracking[id]
-	delete stored.badgeAwardData[id]
+	delete stored.badgeData[id]
+	delete stored.badgeData[id]
 
 	interaction.reply(
 		`Stopped tracking [${badge.name}](<https://roblox.com/badges/${badge.id}>) ([${badge.awardingUniverse.name}](https://roblox.com/games/${badge.awardingUniverse.rootPlaceId}))`
