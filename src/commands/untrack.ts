@@ -5,6 +5,7 @@ import {
 } from "discord.js"
 import { getStored } from "../util/store"
 import { getPlaceDetails } from "../util/api"
+import { createSuccessEmbed } from "../util/embeds"
 
 export const data = new SlashCommandBuilder()
 	.setName("untrack")
@@ -56,9 +57,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		delete stored.trackingGames[place.universeId]
 		badges.forEach((badge) => delete stored.badgeData[badge.id])
 
-		interaction.reply(
-			`Stopped tracking ${badges.length} badges from [${place.name}](https://roblox.com/games/${id})`
-		)
+		interaction.reply({
+			embeds: [
+				createSuccessEmbed(
+					`Stopped Tracking ${place.name}`,
+					`Stopped tracking ${badges.length} badges from [${place.name}](https://roblox.com/games/${id})`
+				),
+			],
+		})
 	} else {
 		const link = interaction.options.getString("link", true)
 		const match = link.match(/(\d+)/)
@@ -76,8 +82,13 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		const badge = stored.badgeData[id]
 		delete stored.badgeData[id]
 
-		interaction.reply(
-			`Stopped tracking [${badge.name}](<https://roblox.com/badges/${badge.id}>) ([${badge.awardingUniverse.name}](https://roblox.com/games/${badge.awardingUniverse.rootPlaceId}))`
-		)
+		interaction.reply({
+			embeds: [
+				createSuccessEmbed(
+					`Stopped Tracking ${badge.name}`,
+					`Stopped tracking [${badge.name}](<https://roblox.com/badges/${badge.id}>) (in [${badge.awardingUniverse.name}](https://roblox.com/games/${badge.awardingUniverse.rootPlaceId}))`
+				),
+			],
+		})
 	}
 }

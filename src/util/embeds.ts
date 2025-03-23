@@ -1,4 +1,9 @@
-import { EmbedBuilder } from "discord.js"
+import {
+	APIEmbed,
+	ChatInputCommandInteraction,
+	EmbedBuilder,
+	JSONEncodable,
+} from "discord.js"
 import { BadgeData, PlaceData } from "./store"
 import { Badge } from "./api"
 
@@ -27,4 +32,37 @@ export function createBadgeEmbed(badge: BadgeData, updated?: Badge) {
 					: badge.statistics.awardedCount.toString(),
 			},
 		])
+}
+
+export function createSuccessEmbed(title: string, description: string) {
+	return new EmbedBuilder()
+		.setTitle(title)
+		.setDescription(description)
+		.setColor("Green")
+}
+
+export function createErrorEmbed(title: string, description: string) {
+	return new EmbedBuilder()
+		.setTitle(title)
+		.setDescription(description)
+		.setColor("Red")
+}
+
+export async function batchEmbedReply(
+	interaction: ChatInputCommandInteraction,
+	allEmbeds: (APIEmbed | JSONEncodable<APIEmbed>)[],
+	edit?: boolean
+) {
+	for (let i = 0; i < allEmbeds.length; i += 10) {
+		const embeds = allEmbeds.slice(i, i + 10)
+		if (i === 0) {
+			if (edit) {
+				await interaction.editReply({ embeds })
+			} else {
+				await interaction.reply({ embeds })
+			}
+		} else {
+			await interaction.followUp({ embeds })
+		}
+	}
 }
