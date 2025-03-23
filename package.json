@@ -5,8 +5,8 @@
 	"scripts": {
 		"dev": "tsc-watch --onSuccess \"npm start\"",
 		"build": "tsc",
-		"start": "node out/index.js",
-		"register-commands": "node out/register-commands.js",
+		"start": "node --enable-source-maps out/index.js",
+		"register-commands": "node --enable-source-maps out/register-commands.js",
 		"lint": "eslint src",
 		"format": "prettier --write ."
 	},
