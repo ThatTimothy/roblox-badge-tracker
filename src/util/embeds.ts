@@ -66,8 +66,7 @@ export async function batchEmbedReply(
 	interaction:
 		| ChatInputCommandInteraction
 		| ((embeds: Embeds) => Promise<unknown>),
-	allEmbeds: Embeds,
-	edit?: boolean
+	allEmbeds: Embeds
 ) {
 	for (let i = 0; i < allEmbeds.length; i += 10) {
 		const embeds = allEmbeds.slice(i, i + 10)
@@ -76,8 +75,8 @@ export async function batchEmbedReply(
 			return await interaction(embeds)
 		}
 
-		if (i === 0) {
-			if (edit) {
+		if (!interaction.replied) {
+			if (interaction.deferred) {
 				await interaction.editReply({ embeds })
 			} else {
 				await interaction.reply({ embeds })
