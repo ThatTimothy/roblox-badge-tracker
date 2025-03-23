@@ -13,6 +13,11 @@ import {
 } from "../util/api"
 import Config from "../util/config"
 import { getImageColor } from "../util/color"
+import {
+	batchEmbedReply,
+	createBadgeEmbed,
+	createSuccessEmbed,
+} from "../util/embeds"
 
 export const data = new SlashCommandBuilder()
 	.setName("track")
@@ -95,16 +100,18 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			}
 		})
 
-		interaction.editReply(
-			`Scanned [${place.name}](https://roblox.com/games/${id}), found ${badges.length} badges\n` +
-				`Now tracking ${toTrack.length}${maxAwarded === null ? "" : ` (threshold <= ${maxAwarded} awarded)`}:\n` +
-				toTrack
-					.map(
-						(badge) =>
-							`- [${badge.name}](<https://roblox.com/badges/${badge.id}>) (${badge.statistics.awardedCount} awarded)`
-					)
-					.join("\n")
-		)
+		const embeds = [
+			createSuccessEmbed(
+				`Now Tracking ${place.name}`,
+				`Scanned [${place.name}](https://roblox.com/games/${id}), found ${badges.length} badges\n` +
+					`Now tracking ${toTrack.length}${maxAwarded === null ? "" : ` (threshold <= ${maxAwarded} awarded)`}\n`
+			),
+			...toTrack.map((badge) =>
+				createBadgeEmbed(stored.badgeData[badge.id])
+			),
+		]
+
+		batchEmbedReply(interaction, embeds, true)
 	} else {
 		const link = interaction.options.getString("link", true)
 		const match = link.match(/(\d+)/)
@@ -130,8 +137,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			}
 		}
 
-		interaction.editReply(
-			`Now tracking [${badge.name}](<https://roblox.com/badges/${badge.id}>) (${badge.statistics.awardedCount} awarded)`
-		)
+		interaction.editReply({
+			content: "Now tracking:",
+			embeds: [createBadgeEmbed(stored.badgeData[id])],
+		})
 	}
 }
