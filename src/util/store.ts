@@ -5,7 +5,7 @@ import { ColorResolvable } from "discord.js"
 
 export type ImageData = { imageColor: ColorResolvable; imageUrl: string }
 export type BadgeData = Badge & ImageData
-export type PlaceData = Place & ImageData
+export type PlaceData = Place & ImageData & { maxAwarded: number }
 interface Stored {
 	lastLogin?: number
 	logChannel?: string

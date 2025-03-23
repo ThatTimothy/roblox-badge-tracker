@@ -98,9 +98,11 @@ export async function getBadgeIcons(badgeIds: number[]): Promise<Icon[]> {
 	return json.data
 }
 
-export async function getPlaceDetails(placeId: number): Promise<Place> {
+export async function getPlaceDetails(placeIds: number[]): Promise<Place[]> {
 	const url = new URL(`${GAMES_API}/v1/games/multiget-place-details`)
-	url.searchParams.append("placeIds", placeId.toString())
+	for (const placeId of placeIds) {
+		url.searchParams.append("placeIds", placeId.toString())
+	}
 	const res = await fetch(url, { headers: HEADERS })
 
 	if (!res.ok) {
@@ -108,7 +110,7 @@ export async function getPlaceDetails(placeId: number): Promise<Place> {
 	}
 
 	const json = await res.json()
-	return json[0]
+	return json
 }
 
 export async function getUniverseIcons(universeIds: number[]): Promise<Icon[]> {

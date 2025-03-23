@@ -45,7 +45,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 		const id = parseInt(match[0])
 		const stored = await getStored()
-		const place = await getPlaceDetails(id)
+		const place = (await getPlaceDetails([id]))[0]
 		if (!stored.trackingGames[place.universeId]) {
 			return await interaction.reply("Not tracking that game!")
 		}
