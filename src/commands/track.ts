@@ -26,6 +26,14 @@ export const data = new SlashCommandBuilder()
 					.setDescription("The link to the game")
 					.setRequired(true)
 			)
+			.addIntegerOption((option) =>
+				option
+					.setName("max-awarded")
+					.setDescription(
+						`Upper limit of awarded count to start tracking, default ${Config.MAX_AWARDED_TO_TRACK}, -1 for none`
+					)
+					.setMinValue(-1)
+			)
 	)
 	.addSubcommand(
 		new SlashCommandSubcommandBuilder()
@@ -54,10 +62,15 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		const id = parseInt(match[0])
 		const place = await getPlaceDetails(id)
 		const badges = await getBadges(place.universeId)
-		const toTrack = badges.filter(
-			(badge) =>
-				badge.statistics.awardedCount <= Config.MAX_AWARDED_TO_TRACK
-		)
+		const maxAwarded =
+			interaction.options.getInteger("max-awarded") ??
+			Config.MAX_AWARDED_TO_TRACK
+		const toTrack =
+			maxAwarded < 0
+				? badges
+				: badges.filter(
+						(badge) => badge.statistics.awardedCount <= maxAwarded
+					)
 		const icons = await getBadgeIcons(toTrack.map((badge) => badge.id))
 
 		const stored = await getStored()
@@ -74,7 +87,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 		interaction.editReply(
 			`Scanned [${place.name}](https://roblox.com/games/${id}), found ${badges.length} badges\n` +
-				`Now tracking ${toTrack.length} (threshold <= ${Config.MAX_AWARDED_TO_TRACK} awarded):\n` +
+				`Now tracking ${toTrack.length}${maxAwarded === null ? "" : ` (threshold <= ${maxAwarded} awarded)`}:\n` +
 				toTrack
 					.map(
 						(badge) =>
