@@ -41,8 +41,7 @@ async function getBadgePage(universeId: number, pageCursor?: string) {
 	const res = await fetch(url, { headers: HEADERS })
 
 	if (!res.ok) {
-		console.error(res.status, await res.text())
-		process.exit(1)
+		throw new Error(`${res.status} ${await res.text()}`)
 	}
 
 	const json = await res.json()
@@ -75,8 +74,7 @@ export async function getBadge(badgeId: number): Promise<Badge> {
 	})
 
 	if (!res.ok) {
-		console.error(res.status, await res.text())
-		process.exit(1)
+		throw new Error(`${res.status} ${await res.text()}`)
 	}
 
 	const json = await res.json()
@@ -93,8 +91,7 @@ export async function getBadgeIcons(badgeIds: number[]): Promise<Icon[]> {
 	const res = await fetch(url, { headers: HEADERS })
 
 	if (!res.ok) {
-		console.error(res.status, await res.text())
-		process.exit(1)
+		throw new Error(`${res.status} ${await res.text()}`)
 	}
 
 	const json = await res.json()
@@ -107,8 +104,7 @@ export async function getPlaceDetails(placeId: number): Promise<Place> {
 	const res = await fetch(url, { headers: HEADERS })
 
 	if (!res.ok) {
-		console.error(res.status, await res.text())
-		process.exit(1)
+		throw new Error(`${res.status} ${await res.text()}`)
 	}
 
 	const json = await res.json()
@@ -125,8 +121,7 @@ export async function getUniverseIcons(universeIds: number[]): Promise<Icon[]> {
 	const res = await fetch(url, { headers: HEADERS })
 
 	if (!res.ok) {
-		console.error(res.status, await res.text())
-		process.exit(1)
+		throw new Error(`${res.status} ${await res.text()}`)
 	}
 
 	const json = await res.json()
