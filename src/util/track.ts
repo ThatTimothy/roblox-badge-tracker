@@ -86,7 +86,7 @@ async function fetchGame(client: Client, id: number) {
 	}
 }
 
-async function trackGames(client: Client) {
+export async function trackGames(client: Client) {
 	const stored = await getStored()
 	const queue = Object.values(stored.trackingGames).map(
 		(place) => place.universeId
@@ -149,7 +149,7 @@ async function fetchBadge(client: Client, id: number) {
 	}
 }
 
-async function trackBadges(client: Client) {
+export async function trackBadges(client: Client) {
 	const stored = await getStored()
 	const queue = Object.values(stored.badgeData).map((badge) => badge.id)
 
@@ -161,12 +161,4 @@ async function trackBadges(client: Client) {
 			await sleep(Config.CHECK_INTERVAL_MS)
 		}
 	}
-}
-
-export async function track(client: Client) {
-	await trackGames(client)
-	for (let i = 0; i < Config.BADGE_TRACKS_PER_GAME_TRACK; i++) {
-		await trackBadges(client)
-	}
-	setTimeout(track)
 }

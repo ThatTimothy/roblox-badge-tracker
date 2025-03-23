@@ -2,20 +2,24 @@ import { Client, Events, MessageFlags } from "discord.js"
 import Config from "./util/config"
 import { getStored, store } from "./util/store"
 import { readCommands } from "./util/commands"
-import { track } from "./util/track"
+import { trackBadges, trackGames } from "./util/track"
 
 const client = new Client({
 	intents: [],
 })
 
-client.once(Events.ClientReady, async (_readyClient) => {
+async function track() {
+	await trackGames(client)
+	for (let i = 0; i < Config.BADGE_TRACKS_PER_GAME_TRACK; i++) {
+		await trackBadges(client)
+	}
+	setTimeout(track)
+}
+
+client.once(Events.ClientReady, async (readyClient) => {
 	console.log("Successfully logged in!")
 	const stored = await getStored()
 	stored.lastLogin = Date.now()
-
-	if (stored.logChannel) {
-		client.channels.fetch(stored.logChannel)
-	}
 
 	setInterval(store, Config.STORE_INTERVAL_MS)
 
@@ -34,7 +38,7 @@ client.once(Events.ClientReady, async (_readyClient) => {
 	process.once("SIGQUIT", shutdown)
 
 	const commands = await readCommands()
-	client.on(Events.InteractionCreate, async (interaction) => {
+	readyClient.on(Events.InteractionCreate, async (interaction) => {
 		if (interaction.isChatInputCommand()) {
 			const command = commands[interaction.commandName]
 
@@ -82,7 +86,7 @@ client.once(Events.ClientReady, async (_readyClient) => {
 	})
 
 	// Tracking
-	track(client)
+	track()
 })
 
 client.login(Config.BOT_TOKEN)
