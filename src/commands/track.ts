@@ -9,6 +9,7 @@ import {
 	getBadgeIcons,
 	getBadges,
 	getPlaceDetails,
+	getUniverseIcons,
 } from "../util/api"
 import Config from "../util/config"
 import { getImageColor } from "../util/color"
@@ -61,6 +62,17 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 		const id = parseInt(match[0])
 		const place = await getPlaceDetails(id)
+
+		const universeIcons = await getUniverseIcons([place.universeId])
+		const universeImageUrl = universeIcons[0].imageUrl
+		const universeImageColor = await getImageColor(universeImageUrl)
+		const stored = await getStored()
+		stored.trackingGames[place.universeId] = {
+			...place,
+			imageUrl: universeImageUrl,
+			imageColor: universeImageColor,
+		}
+
 		const badges = await getBadges(place.universeId)
 		const maxAwarded =
 			interaction.options.getInteger("max-awarded") ??
@@ -71,12 +83,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				: badges.filter(
 						(badge) => badge.statistics.awardedCount <= maxAwarded
 					)
-		const icons = await getBadgeIcons(toTrack.map((badge) => badge.id))
 
-		const stored = await getStored()
-		stored.trackingGames[place.universeId] = place
+		const badgeIcons = await getBadgeIcons(toTrack.map((badge) => badge.id))
 		toTrack.forEach(async (badge, i) => {
-			const imageUrl = icons[i].imageUrl
+			const imageUrl = badgeIcons[i].imageUrl
 			const imageColor = await getImageColor(imageUrl)
 			stored.badgeData[badge.id] = {
 				imageUrl,

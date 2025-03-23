@@ -21,7 +21,7 @@ export interface Badge {
 	}
 }
 
-export interface BadgeIcon {
+export interface Icon {
 	targetId: number
 	imageUrl: string
 }
@@ -83,7 +83,7 @@ export async function getBadge(badgeId: number): Promise<Badge> {
 	return json
 }
 
-export async function getBadgeIcons(badgeIds: number[]): Promise<BadgeIcon[]> {
+export async function getBadgeIcons(badgeIds: number[]): Promise<Icon[]> {
 	const url = new URL(`${THUMBNAILS_API}/v1/badges/icons`)
 	url.searchParams.append("size", "150x150")
 	url.searchParams.append("format", "Png")
@@ -113,4 +113,22 @@ export async function getPlaceDetails(placeId: number): Promise<Place> {
 
 	const json = await res.json()
 	return json[0]
+}
+
+export async function getUniverseIcons(universeIds: number[]): Promise<Icon[]> {
+	const url = new URL(`${THUMBNAILS_API}/v1/games/icons`)
+	url.searchParams.append("size", "512x512")
+	url.searchParams.append("format", "Png")
+	for (const universeId of universeIds) {
+		url.searchParams.append("universeIds", universeId.toString())
+	}
+	const res = await fetch(url, { headers: HEADERS })
+
+	if (!res.ok) {
+		console.error(res.status, await res.text())
+		process.exit(1)
+	}
+
+	const json = await res.json()
+	return json.data
 }
