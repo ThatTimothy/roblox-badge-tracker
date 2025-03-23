@@ -61,7 +61,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		const icons = await getBadgeIcons(toTrack.map((badge) => badge.id))
 
 		const stored = await getStored()
-		stored.trackingGames[place.universeId] = Date.now()
+		stored.trackingGames[place.universeId] = place
 		toTrack.forEach(async (badge, i) => {
 			const imageUrl = icons[i].imageUrl
 			const imageColor = await getImageColor(imageUrl)
