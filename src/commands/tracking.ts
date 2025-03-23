@@ -1,10 +1,10 @@
 import {
 	ChatInputCommandInteraction,
-	EmbedBuilder,
 	SlashCommandBuilder,
 	SlashCommandSubcommandBuilder,
 } from "discord.js"
 import { getStored } from "../util/store"
+import { createBadgeEmbed, createGameEmbed } from "../util/embeds"
 
 export const data = new SlashCommandBuilder()
 	.setName("tracking")
@@ -27,12 +27,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		const places = Object.values(stored.trackingGames)
 		const badges = Object.values(stored.badgeData)
 		const allEmbeds = places.map((place) =>
-			new EmbedBuilder()
-				.setTitle(place.name)
-				.setURL(`https://roblox.com/games/${place.placeId}`)
-				.setDescription(`Tracking ${badges.length} badges`)
-				.setThumbnail(place.imageUrl)
-				.setColor(place.imageColor)
+			createGameEmbed(place).setDescription(
+				`Tracking ${badges.length} badges`
+			)
 		)
 
 		for (let i = 0; i < allEmbeds.length; i += 10) {
@@ -44,22 +41,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	} else {
 		const stored = await getStored()
 		const badges = Object.values(stored.badgeData)
-		const allEmbeds = badges.map((badge) =>
-			new EmbedBuilder()
-				.setTitle(badge.name)
-				.setURL(`https://roblox.com/badges/${badge.id}`)
-				.setDescription(
-					`in [**${badge.awardingUniverse.name}**](https://roblox.com/games/${badge.awardingUniverse.rootPlaceId})`
-				)
-				.setThumbnail(badge.imageUrl)
-				.setColor(badge.imageColor)
-				.addFields([
-					{
-						name: "Awarded",
-						value: badge.statistics.awardedCount.toString(),
-					},
-				])
-		)
+		const allEmbeds = badges.map((badge) => createBadgeEmbed(badge))
 
 		for (let i = 0; i < allEmbeds.length; i += 10) {
 			const embeds = allEmbeds.slice(i, i + 10)
