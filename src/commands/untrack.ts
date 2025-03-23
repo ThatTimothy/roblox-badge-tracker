@@ -1,4 +1,6 @@
 import {
+	ApplicationCommandOptionChoiceData,
+	AutocompleteInteraction,
 	ChatInputCommandInteraction,
 	SlashCommandBuilder,
 	SlashCommandSubcommandBuilder,
@@ -19,6 +21,7 @@ export const data = new SlashCommandBuilder()
 					.setName("link")
 					.setDescription("The link to the game")
 					.setRequired(true)
+					.setAutocomplete(true)
 			)
 	)
 	.addSubcommand(
@@ -30,6 +33,7 @@ export const data = new SlashCommandBuilder()
 					.setName("link")
 					.setDescription("The id or link to the badge")
 					.setRequired(true)
+					.setAutocomplete(true)
 			)
 	)
 
@@ -46,7 +50,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		const id = parseInt(match[0])
 		const stored = await getStored()
 		const place = (await getPlaceDetails([id]))[0]
-		if (!stored.trackingGames[place.universeId]) {
+		if (!place || !stored.trackingGames[place.universeId]) {
 			return await interaction.reply("Not tracking that game!")
 		}
 
@@ -90,5 +94,45 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				),
 			],
 		})
+	}
+}
+
+export async function autocomplete(interaction: AutocompleteInteraction) {
+	const search = interaction.options.getFocused()
+	const subcommand = interaction.options.getSubcommand()
+	if (subcommand === "game") {
+		const stored = await getStored()
+		const choices: ApplicationCommandOptionChoiceData[] = Object.values(
+			stored.trackingGames
+		).map((game) => ({
+			name: game.name,
+			value: game.placeId.toString(),
+		}))
+
+		const top25 = choices
+			.sort((a, b) => a.name.localeCompare(b.name))
+			.slice(0, 25)
+			.filter((choice) =>
+				choice.name.toLowerCase().includes(search.toLowerCase())
+			)
+
+		interaction.respond(top25)
+	} else {
+		const stored = await getStored()
+		const choices: ApplicationCommandOptionChoiceData[] = Object.values(
+			stored.badgeData
+		).map((badge) => ({
+			name: badge.name,
+			value: badge.id.toString(),
+		}))
+
+		const top25 = choices
+			.sort((a, b) => a.name.localeCompare(b.name))
+			.slice(0, 25)
+			.filter((choice) =>
+				choice.name.toLowerCase().includes(search.toLowerCase())
+			)
+
+		interaction.respond(top25)
 	}
 }

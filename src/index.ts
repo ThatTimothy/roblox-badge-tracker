@@ -72,6 +72,10 @@ async function trackGames() {
 		(place) => place.universeId
 	)
 
+	if (queue.length === 0) {
+		return
+	}
+
 	console.log("Refetching game details...")
 	const games = await getPlaceDetails(
 		Object.values(stored.trackingGames).map((game) => game.placeId)
@@ -174,31 +178,48 @@ client.once(Events.ClientReady, async (_readyClient) => {
 
 	const commands = await readCommands()
 	client.on(Events.InteractionCreate, async (interaction) => {
-		if (!interaction.isChatInputCommand()) return
+		if (interaction.isChatInputCommand()) {
+			const command = commands[interaction.commandName]
 
-		const command = commands[interaction.commandName]
+			if (!command) {
+				console.error(
+					`No command matching ${interaction.commandName} was found.`
+				)
+				return
+			}
 
-		if (!command) {
-			console.error(
-				`No command matching ${interaction.commandName} was found.`
-			)
-			return
-		}
+			try {
+				await command.execute(interaction)
+			} catch (error) {
+				console.error(error)
+				if (interaction.replied || interaction.deferred) {
+					await interaction.followUp({
+						content:
+							"There was an error while executing this command!",
+						flags: MessageFlags.Ephemeral,
+					})
+				} else {
+					await interaction.reply({
+						content:
+							"There was an error while executing this command!",
+						flags: MessageFlags.Ephemeral,
+					})
+				}
+			}
+		} else if (interaction.isAutocomplete()) {
+			const command = commands[interaction.commandName]
 
-		try {
-			await command.execute(interaction)
-		} catch (error) {
-			console.error(error)
-			if (interaction.replied || interaction.deferred) {
-				await interaction.followUp({
-					content: "There was an error while executing this command!",
-					flags: MessageFlags.Ephemeral,
-				})
-			} else {
-				await interaction.reply({
-					content: "There was an error while executing this command!",
-					flags: MessageFlags.Ephemeral,
-				})
+			if (!command || !command.autocomplete) {
+				console.error(
+					`No command matching ${interaction.commandName} was found.`
+				)
+				return
+			}
+
+			try {
+				await command.autocomplete(interaction)
+			} catch (error) {
+				console.error(error)
 			}
 		}
 	})
