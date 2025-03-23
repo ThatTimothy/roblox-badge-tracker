@@ -49,7 +49,7 @@ async function fetchGame(id: number) {
 		const embeds = [
 			createSuccessEmbed(
 				`New Badges For ${place.name}`,
-				`Now tracking ${toTrack.length}${maxAwarded === null ? "" : ` (threshold <= ${maxAwarded} awarded)`}\n`
+				`Now tracking ${toTrack.length}${maxAwarded === null ? "" : ` (threshold <= ${maxAwarded.toLocaleString()} awarded)`}\n`
 			),
 			...toTrack.map((badge) =>
 				createBadgeEmbed(stored.badgeData[badge.id])

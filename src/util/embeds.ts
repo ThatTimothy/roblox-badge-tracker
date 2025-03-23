@@ -20,12 +20,14 @@ export function createGameEmbed(place: PlaceData, badges: number) {
 			},
 			{
 				name: "Max Awarded",
-				value: `${place.maxAwarded}${place.maxAwarded < 0 ? " (all badges)" : ""}`,
+				value: `${place.maxAwarded.toLocaleString()}${place.maxAwarded < 0 ? " (all badges)" : ""}`,
 			},
 		])
 }
 
 export function createBadgeEmbed(badge: BadgeData, updated?: Badge) {
+	const previousCount = badge.statistics.awardedCount
+	const updatedCount = updated?.statistics.awardedCount
 	return new EmbedBuilder()
 		.setTitle(badge.name)
 		.setURL(`https://roblox.com/badges/${badge.id}`)
@@ -37,9 +39,10 @@ export function createBadgeEmbed(badge: BadgeData, updated?: Badge) {
 		.addFields([
 			{
 				name: "Awarded",
-				value: updated
-					? `${badge.statistics.awardedCount} → ${updated.statistics.awardedCount} (+${updated.statistics.awardedCount - badge.statistics.awardedCount})`
-					: badge.statistics.awardedCount.toString(),
+				value:
+					updatedCount !== undefined
+						? `${previousCount.toLocaleString()} → ${updatedCount.toLocaleString()} (+${(updatedCount - previousCount).toLocaleString()})`
+						: badge.statistics.awardedCount.toString(),
 			},
 		])
 }
