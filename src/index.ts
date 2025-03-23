@@ -1,6 +1,5 @@
 import {
 	Client,
-	EmbedBuilder,
 	Events,
 	GatewayIntentBits,
 	MessageFlags,
@@ -10,6 +9,7 @@ import Config from "./util/config"
 import { getStored, store } from "./util/store"
 import { readCommands } from "./util/commands"
 import { getBadge } from "./util/api"
+import { createBadgeEmbed } from "./util/embeds"
 
 const client = new Client({
 	intents: [GatewayIntentBits.GuildMessages],
@@ -30,9 +30,7 @@ async function fetchBadge(id: number) {
 
 	const stored = await getStored()
 	const previous = stored.badgeData[id]
-	const previousAwarded = previous.statistics.awardedCount
-	const nowAwarded = badge.statistics.awardedCount
-	if (nowAwarded > previousAwarded) {
+	if (badge.statistics.awardedCount > previous.statistics.awardedCount) {
 		stored.badgeData[id] = {
 			...previous,
 			...badge,
@@ -41,22 +39,7 @@ async function fetchBadge(id: number) {
 		const channel = await getLogChannel()
 		if (channel) {
 			await channel.send({
-				embeds: [
-					new EmbedBuilder()
-						.setTitle(badge.name)
-						.setURL(`https://roblox.com/badges/${badge.id}`)
-						.setDescription(
-							`in [**${badge.awardingUniverse.name}**](https://roblox.com/games/${badge.awardingUniverse.rootPlaceId})`
-						)
-						.setThumbnail(previous.imageUrl)
-						.setColor(previous.imageColor)
-						.addFields([
-							{
-								name: "Awarded",
-								value: `${previousAwarded} → ${nowAwarded} (+${nowAwarded - previousAwarded})`,
-							},
-						]),
-				],
+				embeds: [createBadgeEmbed(previous, badge)],
 			})
 			console.log(`Logged ${id}`)
 		}

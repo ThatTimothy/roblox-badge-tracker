@@ -3,9 +3,9 @@ import Config from "../util/config"
 import { Badge, Place } from "./api"
 import { ColorResolvable } from "discord.js"
 
-type ImageData = { imageColor: ColorResolvable; imageUrl: string }
-type BadgeData = Badge & ImageData
-type PlaceData = Place & ImageData
+export type ImageData = { imageColor: ColorResolvable; imageUrl: string }
+export type BadgeData = Badge & ImageData
+export type PlaceData = Place & ImageData
 interface Stored {
 	lastLogin?: number
 	logChannel?: string
