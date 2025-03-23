@@ -75,3 +75,11 @@ Stops tracking a game. Note that this will untrack any badges under this game.
 ## `/untrack badge [link]`
 
 Stops tracking a badge.
+
+# License
+
+The license can be found in [`LICENSE`](./LICENSE)
+
+# Contributing
+
+If you find any bugs or make a new feature, feel free to make a pull request!
