@@ -90,6 +90,8 @@ client.once(Events.ClientReady, async (_readyClient) => {
 		client.channels.fetch(stored.logChannel)
 	}
 
+	setInterval(store, Config.STORE_INTERVAL_MS)
+
 	let running = true
 	async function shutdown() {
 		if (!running) return
