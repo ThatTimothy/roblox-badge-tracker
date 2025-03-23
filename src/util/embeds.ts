@@ -7,12 +7,22 @@ import {
 import { BadgeData, PlaceData } from "./store"
 import { Badge } from "./api"
 
-export function createGameEmbed(place: PlaceData) {
+export function createGameEmbed(place: PlaceData, badges: number) {
 	return new EmbedBuilder()
 		.setTitle(place.name)
 		.setURL(`https://roblox.com/games/${place.placeId}`)
 		.setThumbnail(place.imageUrl)
 		.setColor(place.imageColor)
+		.addFields([
+			{
+				name: "Tracking",
+				value: `${badges} badges`,
+			},
+			{
+				name: "Max Awarded",
+				value: `${place.maxAwarded}${place.maxAwarded < 0 ? " (all badges)" : ""}`,
+			},
+		])
 }
 
 export function createBadgeEmbed(badge: BadgeData, updated?: Badge) {

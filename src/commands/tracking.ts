@@ -31,9 +31,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		const places = Object.values(stored.trackingGames)
 		const badges = Object.values(stored.badgeData)
 		const allEmbeds = places.map((place) =>
-			createGameEmbed(place).setDescription(
-				`Tracking ${badges.length} badges`
-			)
+			createGameEmbed(place, badges.length)
 		)
 
 		if (allEmbeds.length === 0) {
