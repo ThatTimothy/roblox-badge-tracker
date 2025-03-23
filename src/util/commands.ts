@@ -1,11 +1,16 @@
 // ref: https://discordjs.guide/creating-your-bot/command-deployment.html#guild-commands
 
-import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js"
+import {
+	AutocompleteInteraction,
+	ChatInputCommandInteraction,
+	SlashCommandBuilder,
+} from "discord.js"
 import { readdir } from "fs/promises"
 import path from "path"
 
 interface Command {
 	execute: (interaction: ChatInputCommandInteraction) => Promise<void>
+	autocomplete?: (iteration: AutocompleteInteraction) => Promise<void>
 	data: SlashCommandBuilder
 }
 
@@ -23,10 +28,12 @@ export async function readCommands(): Promise<Record<string, Command>> {
 		const command = require(filePath)
 		const data = command.data as SlashCommandBuilder
 		const execute = command.execute
+		const autocomplete = command.autocomplete
 		if (data && execute) {
 			commands[data.name] = {
 				execute,
 				data,
+				autocomplete,
 			}
 		} else {
 			console.log(
