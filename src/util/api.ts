@@ -28,6 +28,7 @@ export interface BadgeIcon {
 
 export interface Place {
 	universeId: number
+	placeId: number
 	name: string
 }
 

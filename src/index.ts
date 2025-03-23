@@ -74,7 +74,7 @@ async function track() {
 	}
 
 	const id = queue.pop()
-	if (id) {
+	if (id && stored.badgeData[id]) {
 		await fetchBadge(id)
 	}
 

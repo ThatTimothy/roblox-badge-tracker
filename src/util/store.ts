@@ -1,6 +1,6 @@
 import { readFile, writeFile } from "fs/promises"
 import Config from "../util/config"
-import { Badge } from "./api"
+import { Badge, Place } from "./api"
 import { ColorResolvable } from "discord.js"
 
 type BadgeData = Badge & { imageColor: ColorResolvable; imageUrl: string }
@@ -8,7 +8,7 @@ interface Stored {
 	lastLogin?: number
 	logChannel?: string
 	statusChannel?: string
-	trackingGames: Record<number, number>
+	trackingGames: Record<number, Place>
 	badgeData: Record<number, BadgeData>
 }
 
