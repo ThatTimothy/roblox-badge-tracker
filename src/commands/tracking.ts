@@ -4,7 +4,11 @@ import {
 	SlashCommandSubcommandBuilder,
 } from "discord.js"
 import { getStored } from "../util/store"
-import { createBadgeEmbed, createGameEmbed } from "../util/embeds"
+import {
+	createBadgeEmbed,
+	createErrorEmbed as createFailEmbed,
+	createGameEmbed,
+} from "../util/embeds"
 
 export const data = new SlashCommandBuilder()
 	.setName("tracking")
@@ -32,6 +36,17 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			)
 		)
 
+		if (allEmbeds.length === 0) {
+			return await interaction.reply({
+				embeds: [
+					createFailEmbed(
+						"Not Tracking Any Games",
+						"No games are currently being tracked, track one with `/track game [link]`!"
+					),
+				],
+			})
+		}
+
 		for (let i = 0; i < allEmbeds.length; i += 10) {
 			const embeds = allEmbeds.slice(i, i + 10)
 			await (i === 0
@@ -42,6 +57,17 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		const stored = await getStored()
 		const badges = Object.values(stored.badgeData)
 		const allEmbeds = badges.map((badge) => createBadgeEmbed(badge))
+
+		if (allEmbeds.length === 0) {
+			return await interaction.reply({
+				embeds: [
+					createFailEmbed(
+						"Not Tracking Any Badges",
+						"No badges are currently being tracked, track one with `/track badge [link]`!"
+					),
+				],
+			})
+		}
 
 		for (let i = 0; i < allEmbeds.length; i += 10) {
 			const embeds = allEmbeds.slice(i, i + 10)
