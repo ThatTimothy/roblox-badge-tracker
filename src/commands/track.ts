@@ -97,7 +97,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			),
 		]
 
-		batchEmbedReply(interaction, embeds, true)
+		batchEmbedReply(interaction, embeds)
 	} else {
 		const link = interaction.options.getString("link", true)
 		const match = link.match(/(\d+)/)
