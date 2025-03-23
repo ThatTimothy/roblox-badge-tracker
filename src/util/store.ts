@@ -3,12 +3,14 @@ import Config from "../util/config"
 import { Badge, Place } from "./api"
 import { ColorResolvable } from "discord.js"
 
-type BadgeData = Badge & { imageColor: ColorResolvable; imageUrl: string }
+type ImageData = { imageColor: ColorResolvable; imageUrl: string }
+type BadgeData = Badge & ImageData
+type PlaceData = Place & ImageData
 interface Stored {
 	lastLogin?: number
 	logChannel?: string
 	statusChannel?: string
-	trackingGames: Record<number, Place>
+	trackingGames: Record<number, PlaceData>
 	badgeData: Record<number, BadgeData>
 }
 
