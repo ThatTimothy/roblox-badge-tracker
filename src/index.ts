@@ -1,11 +1,11 @@
-import { Client, Events, GatewayIntentBits, MessageFlags } from "discord.js"
+import { Client, Events, MessageFlags } from "discord.js"
 import Config from "./util/config"
 import { getStored, store } from "./util/store"
 import { readCommands } from "./util/commands"
 import { track } from "./util/track"
 
 const client = new Client({
-	intents: [GatewayIntentBits.GuildMessages],
+	intents: [],
 })
 
 client.once(Events.ClientReady, async (_readyClient) => {
