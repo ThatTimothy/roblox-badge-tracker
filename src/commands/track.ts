@@ -18,6 +18,7 @@ import {
 	createBadgeEmbed,
 	createSuccessEmbed,
 } from "../util/embeds"
+import { updatedTrackedBadges } from "../util/track"
 
 export const data = new SlashCommandBuilder()
 	.setName("track")
@@ -57,6 +58,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	const subcommand = interaction.options.getSubcommand()
 	if (subcommand === "game") {
 		const link = interaction.options.getString("link", true)
+		const maxAwarded =
+			interaction.options.getInteger("max-awarded") ??
+			Config.MAX_AWARDED_TO_TRACK
 		const match = link.match(/(\d+)/)
 
 		if (!match) {
@@ -66,39 +70,21 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		await interaction.deferReply()
 
 		const id = parseInt(match[0])
-		const place = await getPlaceDetails(id)
+		const place = (await getPlaceDetails([id]))[0]
 
 		const universeIcons = await getUniverseIcons([place.universeId])
 		const universeImageUrl = universeIcons[0].imageUrl
 		const universeImageColor = await getImageColor(universeImageUrl)
 		const stored = await getStored()
+
+		const badges = await getBadges(place.universeId)
+		const toTrack = await updatedTrackedBadges(badges, maxAwarded)
 		stored.trackingGames[place.universeId] = {
 			...place,
 			imageUrl: universeImageUrl,
 			imageColor: universeImageColor,
+			maxAwarded,
 		}
-
-		const badges = await getBadges(place.universeId)
-		const maxAwarded =
-			interaction.options.getInteger("max-awarded") ??
-			Config.MAX_AWARDED_TO_TRACK
-		const toTrack =
-			maxAwarded < 0
-				? badges
-				: badges.filter(
-						(badge) => badge.statistics.awardedCount <= maxAwarded
-					)
-
-		const badgeIcons = await getBadgeIcons(toTrack.map((badge) => badge.id))
-		toTrack.forEach(async (badge, i) => {
-			const imageUrl = badgeIcons[i].imageUrl
-			const imageColor = await getImageColor(imageUrl)
-			stored.badgeData[badge.id] = {
-				imageUrl,
-				imageColor,
-				...badge,
-			}
-		})
 
 		const embeds = [
 			createSuccessEmbed(

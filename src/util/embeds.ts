@@ -48,13 +48,21 @@ export function createErrorEmbed(title: string, description: string) {
 		.setColor("Red")
 }
 
+type Embeds = (APIEmbed | JSONEncodable<APIEmbed>)[]
 export async function batchEmbedReply(
-	interaction: ChatInputCommandInteraction,
-	allEmbeds: (APIEmbed | JSONEncodable<APIEmbed>)[],
+	interaction:
+		| ChatInputCommandInteraction
+		| ((embeds: Embeds) => Promise<unknown>),
+	allEmbeds: Embeds,
 	edit?: boolean
 ) {
 	for (let i = 0; i < allEmbeds.length; i += 10) {
 		const embeds = allEmbeds.slice(i, i + 10)
+
+		if (typeof interaction === "function") {
+			return await interaction(embeds)
+		}
+
 		if (i === 0) {
 			if (edit) {
 				await interaction.editReply({ embeds })
