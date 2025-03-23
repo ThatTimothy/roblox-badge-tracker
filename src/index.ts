@@ -1,155 +1,12 @@
-import {
-	Client,
-	Events,
-	GatewayIntentBits,
-	MessageFlags,
-	SendableChannels,
-} from "discord.js"
+import { Client, Events, GatewayIntentBits, MessageFlags } from "discord.js"
 import Config from "./util/config"
 import { getStored, store } from "./util/store"
 import { readCommands } from "./util/commands"
-import {
-	getBadge,
-	getBadges,
-	getPlaceDetails,
-	getUniverseIcons,
-} from "./util/api"
-import {
-	batchEmbedReply,
-	createBadgeEmbed,
-	createSuccessEmbed,
-} from "./util/embeds"
-import { sleep } from "./util/sleep"
-import { updatedTrackedBadges } from "./util/track"
-import { getImageColor } from "./util/color"
+import { track } from "./util/track"
 
 const client = new Client({
 	intents: [GatewayIntentBits.GuildMessages],
 })
-
-async function getLogChannel(): Promise<SendableChannels | undefined> {
-	const stored = await getStored()
-	if (!stored.logChannel) return
-	const channel = await client.channels.fetch(stored.logChannel)
-	if (!channel) return
-	if (!channel.isSendable()) return
-	return channel
-}
-
-async function fetchGame(id: number) {
-	const stored = await getStored()
-	const place = stored.trackingGames[id]
-	const maxAwarded = place.maxAwarded
-
-	const badges = await getBadges(id)
-	const toTrack = await updatedTrackedBadges(badges, maxAwarded)
-
-	if (toTrack.length > 0) {
-		console.log(`Found new badges for game ${id}`)
-		const embeds = [
-			createSuccessEmbed(
-				`New Badges For ${place.name}`,
-				`Now tracking ${toTrack.length}${maxAwarded === null ? "" : ` (threshold <= ${maxAwarded.toLocaleString()} awarded)`}\n`
-			),
-			...toTrack.map((badge) =>
-				createBadgeEmbed(stored.badgeData[badge.id])
-			),
-		]
-
-		const channel = await getLogChannel()
-		if (channel) {
-			batchEmbedReply((embeds) => channel.send({ embeds }), embeds)
-			console.log(`Logged new badges for game ${id}`)
-		}
-	} else {
-		console.log(`No updates for game ${id}`)
-	}
-}
-
-async function trackGames() {
-	const stored = await getStored()
-	const queue = Object.values(stored.trackingGames).map(
-		(place) => place.universeId
-	)
-
-	if (queue.length === 0) {
-		return
-	}
-
-	console.log("Refetching game details...")
-	const games = await getPlaceDetails(
-		Object.values(stored.trackingGames).map((game) => game.placeId)
-	)
-	const icons = await getUniverseIcons(games.map((game) => game.universeId))
-
-	for (let i = 0; i < games.length; i++) {
-		const game = games[i]
-		const imageUrl = icons[i].imageUrl
-		const imageColor = await getImageColor(imageUrl)
-
-		stored.trackingGames[game.universeId] = {
-			...stored.trackingGames[game.universeId],
-			...game,
-			imageUrl,
-			imageColor,
-		}
-	}
-	console.log("Updated game details")
-
-	while (queue.length > 0) {
-		const id = queue.pop()
-		if (id && stored.trackingGames[id]) {
-			console.log(`Fetching game ${id} (${queue.length} left in queue)`)
-			await fetchGame(id)
-			await sleep(Config.CHECK_INTERVAL_MS)
-		}
-	}
-}
-
-async function fetchBadge(id: number) {
-	const badge = await getBadge(id)
-
-	const stored = await getStored()
-	const previous = stored.badgeData[id]
-	if (badge.statistics.awardedCount > previous.statistics.awardedCount) {
-		stored.badgeData[id] = {
-			...previous,
-			...badge,
-		}
-		console.log(`Updated badge ${id}`)
-		const channel = await getLogChannel()
-		if (channel) {
-			await channel.send({
-				embeds: [createBadgeEmbed(previous, badge)],
-			})
-			console.log(`Logged badge ${id}`)
-		}
-	} else {
-		console.log(`No updates for badge ${id}`)
-	}
-}
-
-async function trackBadges() {
-	const stored = await getStored()
-	const queue = Object.values(stored.badgeData).map((badge) => badge.id)
-
-	while (queue.length > 0) {
-		const id = queue.pop()
-		if (id && stored.badgeData[id]) {
-			console.log(`Fetching badge ${id} (${queue.length} left in queue)`)
-			await fetchBadge(id)
-			await sleep(Config.CHECK_INTERVAL_MS)
-		}
-	}
-}
-
-async function track() {
-	await trackGames()
-	for (let i = 0; i < Config.BADGE_TRACKS_PER_GAME_TRACK; i++) {
-		await trackBadges()
-	}
-	setTimeout(track)
-}
 
 client.once(Events.ClientReady, async (_readyClient) => {
 	console.log("Successfully logged in!")
@@ -225,7 +82,7 @@ client.once(Events.ClientReady, async (_readyClient) => {
 	})
 
 	// Tracking
-	track()
+	track(client)
 })
 
 client.login(Config.BOT_TOKEN)
