@@ -16,7 +16,7 @@ export function createGameEmbed(place: PlaceData, badges: number) {
 		.addFields([
 			{
 				name: "Tracking",
-				value: `${badges} badges`,
+				value: `${badges} badge${badges !== 1 ? "s" : ""}`,
 			},
 			{
 				name: "Max Awarded",
