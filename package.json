@@ -1,7 +1,7 @@
 {
 	"name": "roblox-badge-tracker",
 	"version": "1.0.0",
-	"description": "",
+	"description": "A simple discord bot to track games and their badges",
 	"scripts": {
 		"dev": "tsc-watch --onSuccess \"npm start\"",
 		"build": "tsc",
@@ -14,12 +14,13 @@
 		"type": "git",
 		"url": "git+https://github.com/ThatTimothy/roblox-badge-tracker.git"
 	},
-	"author": "",
-	"license": "ISC",
+	"author": "ThatTimothy",
+	"license": "MIT",
 	"bugs": {
 		"url": "https://github.com/ThatTimothy/roblox-badge-tracker/issues"
 	},
 	"homepage": "https://github.com/ThatTimothy/roblox-badge-tracker#readme",
+	"private": true,
 	"dependencies": {
 		"discord.js": "^14.27.0",
 		"dotenv": "^18.0.5",
