@@ -11,6 +11,7 @@ import {
 	getPlaceDetails,
 	getUniverseDetails,
 	getUniverseIcons,
+	Place,
 } from "../util/api"
 import Config from "../util/config"
 import { getImageColor } from "../util/color"
@@ -71,13 +72,23 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		await interaction.deferReply()
 
 		const id = parseInt(match[0])
-		const universeId = (await getPlaceDetails([id]))[0].universeId
+		const universeId = (
+			(await getPlaceDetails([id]))?.[0] as Place | undefined
+		)?.universeId
+		if (!universeId) {
+			return await interaction.editReply("Invalid link!")
+		}
+
+		const stored = await getStored()
+		if (stored.trackingGames[universeId]) {
+			return await interaction.editReply("Already tracking that game!")
+		}
+
 		const universe = (await getUniverseDetails([universeId]))[0]
 
 		const universeIcons = await getUniverseIcons([universeId])
 		const imageUrl = universeIcons[0].imageUrl
 		const color = await getImageColor(imageUrl)
-		const stored = await getStored()
 
 		const badges = await getBadges(universeId)
 		const toTrack = await updatedTrackedBadges(badges, maxAwarded)
