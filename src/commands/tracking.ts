@@ -28,13 +28,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	const subcommand = interaction.options.getSubcommand()
 	if (subcommand === "games") {
 		const stored = await getStored()
-		const places = Object.values(stored.trackingGames)
-		const badges = Object.values(stored.badgeData)
-		const allEmbeds = places.map((place) =>
+		const badges = Object.values(stored.trackingBadges)
+		const allEmbeds = Object.values(stored.trackingGames).map((gameData) =>
 			createGameEmbed(
-				place,
+				gameData,
 				badges.filter(
-					(badge) => badge.awardingUniverse.id == place.universeId
+					(badge) => badge.awardingUniverse.id == gameData.id
 				).length
 			)
 		)
@@ -58,7 +57,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		}
 	} else {
 		const stored = await getStored()
-		const badges = Object.values(stored.badgeData)
+		const badges = Object.values(stored.trackingBadges)
 		const allEmbeds = badges.map((badge) => createBadgeEmbed(badge))
 
 		if (allEmbeds.length === 0) {

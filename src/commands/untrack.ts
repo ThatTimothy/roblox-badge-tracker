@@ -6,7 +6,6 @@ import {
 	SlashCommandSubcommandBuilder,
 } from "discord.js"
 import { getStored } from "../util/store"
-import { getPlaceDetails } from "../util/api"
 import { createSuccessEmbed } from "../util/embeds"
 
 export const data = new SlashCommandBuilder()
@@ -49,23 +48,25 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 		const id = parseInt(match[0])
 		const stored = await getStored()
-		const place = (await getPlaceDetails([id]))[0]
-		if (!place || !stored.trackingGames[place.universeId]) {
+		const trackingGame = Object.values(stored.trackingGames).find(
+			(trackingGame) => trackingGame.rootPlaceId == id
+		)
+		if (!trackingGame) {
 			return await interaction.reply("Not tracking that game!")
 		}
 
-		const badges = Object.values(stored.badgeData).filter(
+		const badges = Object.values(stored.trackingBadges).filter(
 			(badge) => badge.awardingUniverse.rootPlaceId === id
 		)
 
-		delete stored.trackingGames[place.universeId]
-		badges.forEach((badge) => delete stored.badgeData[badge.id])
+		delete stored.trackingGames[trackingGame.id]
+		badges.forEach((badge) => delete stored.trackingBadges[badge.id])
 
 		interaction.reply({
 			embeds: [
 				createSuccessEmbed(
-					`Stopped Tracking ${place.name}`,
-					`Stopped tracking ${badges.length} badges from [${place.name}](https://roblox.com/games/${id})`
+					`Stopped Tracking ${trackingGame.name}`,
+					`Stopped tracking ${badges.length} badges from [${trackingGame.name}](https://roblox.com/games/${id})`
 				),
 			],
 		})
@@ -79,12 +80,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 		const id = parseInt(match[0])
 		const stored = await getStored()
-		if (!stored.badgeData[id]) {
+		if (!stored.trackingBadges[id]) {
 			return await interaction.reply("Not tracking that badge!")
 		}
 
-		const badge = stored.badgeData[id]
-		delete stored.badgeData[id]
+		const badge = stored.trackingBadges[id]
+		delete stored.trackingBadges[id]
 
 		interaction.reply({
 			embeds: [
@@ -106,7 +107,7 @@ export async function autocomplete(interaction: AutocompleteInteraction) {
 			stored.trackingGames
 		).map((game) => ({
 			name: game.name,
-			value: game.placeId.toString(),
+			value: game.rootPlaceId.toString(),
 		}))
 
 		const top25 = choices
@@ -120,7 +121,7 @@ export async function autocomplete(interaction: AutocompleteInteraction) {
 	} else {
 		const stored = await getStored()
 		const choices: ApplicationCommandOptionChoiceData[] = Object.values(
-			stored.badgeData
+			stored.trackingBadges
 		).map((badge) => ({
 			name: badge.name,
 			value: badge.id.toString(),

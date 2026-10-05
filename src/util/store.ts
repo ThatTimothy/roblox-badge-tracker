@@ -1,17 +1,23 @@
 import { readFile, writeFile } from "fs/promises"
 import Config from "../util/config"
-import { Badge, Place } from "./api"
+import { Badge, Universe } from "./api"
 import { ColorResolvable } from "discord.js"
 
-export type ImageData = { imageColor: ColorResolvable; imageUrl: string }
-export type BadgeData = Badge & ImageData
-export type PlaceData = Place & ImageData & { maxAwarded: number }
+interface Theme {
+	color: ColorResolvable
+	imageUrl: string
+}
+export type BadgeData = Badge & Theme
+export type GameData = Universe &
+	Theme & {
+		maxAwarded: number
+	}
 interface Stored {
 	lastLogin?: number
 	logChannel?: string
 	statusChannel?: string
-	trackingGames: Record<number, PlaceData>
-	badgeData: Record<number, BadgeData>
+	trackingGames: Record<number, GameData>
+	trackingBadges: Record<number, BadgeData>
 }
 
 let loaded: Stored | null = null
@@ -24,7 +30,7 @@ async function retrieve(): Promise<Stored> {
 		if (e && typeof e === "object" && "code" in e && e.code === "ENOENT") {
 			return {
 				trackingGames: {},
-				badgeData: {},
+				trackingBadges: {},
 			}
 		}
 

@@ -9,6 +9,7 @@ import {
 	getBadgeIcons,
 	getBadges,
 	getPlaceDetails,
+	getUniverseDetails,
 	getUniverseIcons,
 } from "../util/api"
 import Config from "../util/config"
@@ -70,30 +71,31 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		await interaction.deferReply()
 
 		const id = parseInt(match[0])
-		const place = (await getPlaceDetails([id]))[0]
+		const universeId = (await getPlaceDetails([id]))[0].universeId
+		const universe = (await getUniverseDetails([universeId]))[0]
 
-		const universeIcons = await getUniverseIcons([place.universeId])
-		const universeImageUrl = universeIcons[0].imageUrl
-		const universeImageColor = await getImageColor(universeImageUrl)
+		const universeIcons = await getUniverseIcons([universeId])
+		const imageUrl = universeIcons[0].imageUrl
+		const color = await getImageColor(imageUrl)
 		const stored = await getStored()
 
-		const badges = await getBadges(place.universeId)
+		const badges = await getBadges(universeId)
 		const toTrack = await updatedTrackedBadges(badges, maxAwarded)
-		stored.trackingGames[place.universeId] = {
-			...place,
-			imageUrl: universeImageUrl,
-			imageColor: universeImageColor,
+		stored.trackingGames[universeId] = {
+			...universe,
+			imageUrl,
+			color,
 			maxAwarded,
 		}
 
 		const embeds = [
 			createSuccessEmbed(
-				`Now Tracking ${place.name}`,
-				`Scanned [${place.name}](https://roblox.com/games/${id}), found ${badges.length} badges\n` +
+				`Now Tracking ${universe.name}`,
+				`Scanned [${universe.name}](https://roblox.com/games/${id}), found ${badges.length} badges\n` +
 					`Now tracking ${toTrack.length}${maxAwarded === null ? "" : ` (threshold <= ${maxAwarded.toLocaleString()} awarded)`}\n`
 			),
 			...toTrack.map((badge) =>
-				createBadgeEmbed(stored.badgeData[badge.id])
+				createBadgeEmbed(stored.trackingBadges[badge.id])
 			),
 		]
 
@@ -112,20 +114,20 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		const badge = await getBadge(id)
 		const icons = await getBadgeIcons([id])
 		const imageUrl = icons[0].imageUrl
-		const imageColor = await getImageColor(imageUrl)
+		const color = await getImageColor(imageUrl)
 
 		const stored = await getStored()
-		if (!stored.badgeData[id]) {
-			stored.badgeData[id] = {
+		if (!stored.trackingBadges[id]) {
+			stored.trackingBadges[id] = {
 				imageUrl,
-				imageColor,
+				color: color,
 				...badge,
 			}
 		}
 
 		interaction.editReply({
 			content: "Now tracking:",
-			embeds: [createBadgeEmbed(stored.badgeData[id])],
+			embeds: [createBadgeEmbed(stored.trackingBadges[id])],
 		})
 	}
 }

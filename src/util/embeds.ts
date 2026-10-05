@@ -4,15 +4,15 @@ import {
 	EmbedBuilder,
 	JSONEncodable,
 } from "discord.js"
-import { BadgeData, PlaceData } from "./store"
+import { BadgeData, GameData } from "./store"
 import { Badge } from "./api"
 
-export function createGameEmbed(place: PlaceData, badges: number) {
+export function createGameEmbed(gameData: GameData, badges: number) {
 	return new EmbedBuilder()
-		.setTitle(place.name)
-		.setURL(`https://roblox.com/games/${place.placeId}`)
-		.setThumbnail(place.imageUrl)
-		.setColor(place.imageColor)
+		.setTitle(gameData.name)
+		.setURL(`https://roblox.com/games/${gameData.rootPlaceId}`)
+		.setThumbnail(gameData.imageUrl)
+		.setColor(gameData.color)
 		.addFields([
 			{
 				name: "Tracking",
@@ -20,29 +20,30 @@ export function createGameEmbed(place: PlaceData, badges: number) {
 			},
 			{
 				name: "Max Awarded",
-				value: `${place.maxAwarded.toLocaleString()}${place.maxAwarded < 0 ? " (all badges)" : ""}`,
+				value: `${gameData.maxAwarded.toLocaleString()}${gameData.maxAwarded < 0 ? " (all badges)" : ""}`,
 			},
 		])
 }
 
-export function createBadgeEmbed(badge: BadgeData, updated?: Badge) {
-	const previousCount = badge.statistics.awardedCount
+export function createBadgeEmbed(badgeData: BadgeData, updated?: Badge) {
+	const previousCount = badgeData.statistics.awardedCount
 	const updatedCount = updated?.statistics.awardedCount
+	const awardingUniverse = (updated || badgeData).awardingUniverse
 	return new EmbedBuilder()
-		.setTitle(badge.name)
-		.setURL(`https://roblox.com/badges/${badge.id}`)
+		.setTitle(updated?.name || badgeData.name)
+		.setURL(`https://roblox.com/badges/${badgeData.id}`)
 		.setDescription(
-			`in [**${badge.awardingUniverse.name}**](https://roblox.com/games/${badge.awardingUniverse.rootPlaceId})`
+			`in [**${awardingUniverse.name}**](https://roblox.com/games/${awardingUniverse.rootPlaceId})`
 		)
-		.setThumbnail(badge.imageUrl)
-		.setColor(badge.imageColor)
+		.setThumbnail(badgeData.imageUrl)
+		.setColor(badgeData.color)
 		.addFields([
 			{
 				name: "Awarded",
 				value:
-					updatedCount !== undefined
+					updatedCount !== undefined && updatedCount != previousCount
 						? `${previousCount.toLocaleString()} → ${updatedCount.toLocaleString()} (+${(updatedCount - previousCount).toLocaleString()})`
-						: badge.statistics.awardedCount.toString(),
+						: previousCount.toString(),
 			},
 		])
 }
@@ -64,8 +65,7 @@ export function createErrorEmbed(title: string, description: string) {
 type Embeds = (APIEmbed | JSONEncodable<APIEmbed>)[]
 export async function batchEmbedReply(
 	interaction:
-		| ChatInputCommandInteraction
-		| ((embeds: Embeds) => Promise<unknown>),
+		ChatInputCommandInteraction | ((embeds: Embeds) => Promise<unknown>),
 	allEmbeds: Embeds
 ) {
 	for (let i = 0; i < allEmbeds.length; i += 10) {

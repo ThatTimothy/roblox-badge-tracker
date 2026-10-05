@@ -26,10 +26,16 @@ export interface Icon {
 	imageUrl: string
 }
 
+export interface Universe {
+	id: number
+	rootPlaceId: number
+	name: string
+	created: string
+	updated: string
+}
+
 export interface Place {
 	universeId: number
-	placeId: number
-	name: string
 }
 
 async function getBadgePage(universeId: number, pageCursor?: string) {
@@ -96,6 +102,23 @@ export async function getBadgeIcons(badgeIds: number[]): Promise<Icon[]> {
 
 	const json = await res.json()
 	return json.data
+}
+
+export async function getUniverseDetails(
+	universeIds: number[]
+): Promise<Universe[]> {
+	const url = new URL(`${GAMES_API}/v1/games`)
+	for (const universeId of universeIds) {
+		url.searchParams.append("universeIds", universeId.toString())
+	}
+	const res = await fetch(url, { headers: HEADERS })
+
+	if (!res.ok) {
+		throw new Error(`${res.status} ${await res.text()}`)
+	}
+
+	const json = await res.json()
+	return json["data"]
 }
 
 export async function getPlaceDetails(placeIds: number[]): Promise<Place[]> {

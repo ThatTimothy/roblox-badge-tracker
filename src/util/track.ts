@@ -4,7 +4,7 @@ import {
 	getBadge,
 	getBadgeIcons,
 	getBadges,
-	getPlaceDetails,
+	getUniverseDetails,
 	getUniverseIcons,
 } from "./api"
 import { getImageColor } from "./color"
@@ -22,7 +22,7 @@ export async function updatedTrackedBadges(
 	// maxAwarded < 0 means no requirement for awarded
 	const toTrack = badges.filter(
 		(badge) =>
-			!stored.badgeData[badge.id] &&
+			!stored.trackingBadges[badge.id] &&
 			(maxAwarded < 0 || badge.statistics.awardedCount <= maxAwarded)
 	)
 
@@ -34,11 +34,11 @@ export async function updatedTrackedBadges(
 	for (let i = 0; i < toTrack.length; i++) {
 		const badge = toTrack[i]
 		const imageUrl = badgeIcons[i].imageUrl
-		const imageColor = await getImageColor(imageUrl)
-		stored.badgeData[badge.id] = {
-			imageUrl,
-			imageColor,
+		const color = await getImageColor(imageUrl)
+		stored.trackingBadges[badge.id] = {
 			...badge,
+			imageUrl,
+			color,
 		}
 	}
 
@@ -58,8 +58,8 @@ async function getLogChannel(
 
 async function fetchGame(client: Client, id: number) {
 	const stored = await getStored()
-	const place = stored.trackingGames[id]
-	const maxAwarded = place.maxAwarded
+	const trackingGame = stored.trackingGames[id]
+	const maxAwarded = trackingGame.maxAwarded
 
 	const badges = await getBadges(id)
 	const toTrack = await updatedTrackedBadges(badges, maxAwarded)
@@ -68,11 +68,11 @@ async function fetchGame(client: Client, id: number) {
 		console.log(`Found new badges for game ${id}`)
 		const embeds = [
 			createSuccessEmbed(
-				`New Badges For ${place.name}`,
+				`New Badges For ${trackingGame.name}`,
 				`Now tracking ${toTrack.length}${maxAwarded === null ? "" : ` (threshold <= ${maxAwarded.toLocaleString()} awarded)`}\n`
 			),
 			...toTrack.map((badge) =>
-				createBadgeEmbed(stored.badgeData[badge.id])
+				createBadgeEmbed(stored.trackingBadges[badge.id])
 			),
 		]
 
@@ -89,7 +89,7 @@ async function fetchGame(client: Client, id: number) {
 export async function trackGames(client: Client) {
 	const stored = await getStored()
 	const queue = Object.values(stored.trackingGames).map(
-		(place) => place.universeId
+		(trackingGame) => trackingGame.id
 	)
 
 	if (queue.length === 0) {
@@ -97,21 +97,23 @@ export async function trackGames(client: Client) {
 	}
 
 	console.log("Refetching game details...")
-	const games = await getPlaceDetails(
-		Object.values(stored.trackingGames).map((game) => game.placeId)
+	const universes = await getUniverseDetails(
+		Object.values(stored.trackingGames).map((game) => game.id)
 	)
-	const icons = await getUniverseIcons(games.map((game) => game.universeId))
+	const icons = await getUniverseIcons(
+		universes.map((universe) => universe.id)
+	)
 
-	for (let i = 0; i < games.length; i++) {
-		const game = games[i]
+	for (let i = 0; i < universes.length; i++) {
+		const universe = universes[i]
 		const imageUrl = icons[i].imageUrl
-		const imageColor = await getImageColor(imageUrl)
+		const color = await getImageColor(imageUrl)
 
-		stored.trackingGames[game.universeId] = {
-			...stored.trackingGames[game.universeId],
-			...game,
+		stored.trackingGames[universe.id] = {
+			...stored.trackingGames[universe.id],
+			...universe,
+			color,
 			imageUrl,
-			imageColor,
 		}
 	}
 	console.log("Updated game details")
@@ -130,9 +132,9 @@ async function fetchBadge(client: Client, id: number) {
 	const badge = await getBadge(id)
 
 	const stored = await getStored()
-	const previous = stored.badgeData[id]
+	const previous = stored.trackingBadges[id]
 	if (badge.statistics.awardedCount > previous.statistics.awardedCount) {
-		stored.badgeData[id] = {
+		stored.trackingBadges[id] = {
 			...previous,
 			...badge,
 		}
@@ -151,11 +153,11 @@ async function fetchBadge(client: Client, id: number) {
 
 export async function trackBadges(client: Client) {
 	const stored = await getStored()
-	const queue = Object.values(stored.badgeData).map((badge) => badge.id)
+	const queue = Object.values(stored.trackingBadges).map((badge) => badge.id)
 
 	while (queue.length > 0) {
 		const id = queue.pop()
-		if (id && stored.badgeData[id]) {
+		if (id && stored.trackingBadges[id]) {
 			console.log(`Fetching badge ${id} (${queue.length} left in queue)`)
 			await fetchBadge(client, id)
 			await sleep(Config.CHECK_INTERVAL_MS)
