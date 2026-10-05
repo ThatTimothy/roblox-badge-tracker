@@ -112,10 +112,10 @@ export async function autocomplete(interaction: AutocompleteInteraction) {
 
 		const top25 = choices
 			.sort((a, b) => a.name.localeCompare(b.name))
-			.slice(0, 25)
 			.filter((choice) =>
 				choice.name.toLowerCase().includes(search.toLowerCase())
 			)
+			.slice(0, 25)
 
 		interaction.respond(top25)
 	} else {
@@ -129,10 +129,10 @@ export async function autocomplete(interaction: AutocompleteInteraction) {
 
 		const top25 = choices
 			.sort((a, b) => a.name.localeCompare(b.name))
-			.slice(0, 25)
 			.filter((choice) =>
 				choice.name.toLowerCase().includes(search.toLowerCase())
 			)
+			.slice(0, 25)
 
 		interaction.respond(top25)
 	}
