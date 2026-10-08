@@ -14,8 +14,8 @@ The bot requires the `Send Messages` and `View Channels` permission for the chan
 
 Next, the following values must be placed into a `.env` file:
 
-- `ROBLOSECURITY` - the ROBLOSECURITY cookie of the account to be used to fetch badge information
-- `BOT_TOKEN` - the token of the discord bot
+- `API_KEY` - [an Roblox API key](https://create.roblox.com/dashboard/credentials) provisioned to be used - requires no permissions
+- `BOT_TOKEN` - the [token of the discord bot](https://discord.com/developers/applications/)
 - `CLIENT_ID` - the id of the bot's user client (also known as "Application Id" on the discord developers portal)
 - `GUILD_ID` - the id of the guild to push commands to when registering commands (should match the server you added the bot to)
 

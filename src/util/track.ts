@@ -1,17 +1,8 @@
 import { Client, SendableChannels } from "discord.js"
-import {
-	Badge,
-	getBadge,
-	getBadgeIcons,
-	getBadges,
-	getUniverseDetails,
-	getUniverseIcons,
-} from "./api"
+import API, { Badge } from "./api"
 import { getImageColor } from "./color"
 import { getStored } from "./store"
-import Config from "./config"
 import { batchEmbedReply, createBadgeEmbed, createSuccessEmbed } from "./embeds"
-import { sleep } from "./sleep"
 
 export async function updatedTrackedBadges(
 	badges: Badge[],
@@ -30,10 +21,9 @@ export async function updatedTrackedBadges(
 		return []
 	}
 
-	const badgeIcons = await getBadgeIcons(toTrack.map((badge) => badge.id))
-	for (let i = 0; i < toTrack.length; i++) {
-		const badge = toTrack[i]
-		const imageUrl = badgeIcons[i].imageUrl
+	const badgeIcons = await API.getBadgeIcons(toTrack.map((badge) => badge.id))
+	for (const badge of toTrack) {
+		const imageUrl = badgeIcons[badge.id]
 		const color = await getImageColor(imageUrl)
 		stored.trackingBadges[badge.id] = {
 			...badge,
@@ -61,7 +51,7 @@ async function fetchGame(client: Client, id: number) {
 	const trackingGame = stored.trackingGames[id]
 	const maxAwarded = trackingGame.maxAwarded
 
-	const badges = await getBadges(id)
+	const badges = await API.getBadges(id)
 	const toTrack = await updatedTrackedBadges(badges, maxAwarded)
 
 	if (toTrack.length > 0) {
@@ -97,16 +87,15 @@ export async function trackGames(client: Client) {
 	}
 
 	console.log("Refetching game details...")
-	const universes = await getUniverseDetails(
+	const universes = await API.getUniverseDetails(
 		Object.values(stored.trackingGames).map((game) => game.id)
 	)
-	const icons = await getUniverseIcons(
+	const icons = await API.getUniverseIcons(
 		universes.map((universe) => universe.id)
 	)
 
-	for (let i = 0; i < universes.length; i++) {
-		const universe = universes[i]
-		const imageUrl = icons[i].imageUrl
+	for (const universe of universes) {
+		const imageUrl = icons[universe.id]
 		const color = await getImageColor(imageUrl)
 
 		stored.trackingGames[universe.id] = {
@@ -123,13 +112,12 @@ export async function trackGames(client: Client) {
 		if (id && stored.trackingGames[id]) {
 			console.log(`Fetching game ${id} (${queue.length} left in queue)`)
 			await fetchGame(client, id)
-			await sleep(Config.CHECK_INTERVAL_MS)
 		}
 	}
 }
 
 async function fetchBadge(client: Client, id: number) {
-	const badge = await getBadge(id)
+	const badge = await API.getBadge(id)
 
 	const stored = await getStored()
 	const previous = stored.trackingBadges[id]
@@ -160,7 +148,6 @@ export async function trackBadges(client: Client) {
 		if (id && stored.trackingBadges[id]) {
 			console.log(`Fetching badge ${id} (${queue.length} left in queue)`)
 			await fetchBadge(client, id)
-			await sleep(Config.CHECK_INTERVAL_MS)
 		}
 	}
 }

@@ -3,6 +3,7 @@ import Config from "./util/config"
 import { getStored, store } from "./util/store"
 import { readCommands } from "./util/commands"
 import { trackBadges, trackGames } from "./util/track"
+import API from "./util/api"
 
 const client = new Client({
 	intents: [],
@@ -17,7 +18,27 @@ async function track() {
 }
 
 client.once(Events.ClientReady, async (readyClient) => {
-	console.log("Successfully logged in!")
+	console.log("Successfully logged into Discord!")
+
+	const verified = await API.verify()
+	if ("message" in verified) {
+		console.error(
+			`Roblox API key is not valid - ${JSON.stringify(verified)}`
+		)
+		process.exit(1)
+	}
+	if (verified.expired) {
+		console.error("Roblox API key is expired - please update!")
+		process.exit(1)
+	}
+	if (!verified.enabled) {
+		console.error("Roblox API key is disabled - please enable!")
+		process.exit(1)
+	}
+	console.log(
+		`Roblox API key '${verified.name}' by ${verified.authorizedUserId} is verified!`
+	)
+
 	const stored = await getStored()
 	stored.lastLogin = Date.now()
 
@@ -84,6 +105,8 @@ client.once(Events.ClientReady, async (readyClient) => {
 			}
 		}
 	})
+
+	console.log("Setup complete!")
 
 	// Tracking
 	track()

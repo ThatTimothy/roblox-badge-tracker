@@ -4,15 +4,7 @@ import {
 	SlashCommandSubcommandBuilder,
 } from "discord.js"
 import { getStored } from "../util/store"
-import {
-	getBadge,
-	getBadgeIcons,
-	getBadges,
-	getPlaceDetails,
-	getUniverseDetails,
-	getUniverseIcons,
-	Place,
-} from "../util/api"
+import API from "../util/api"
 import Config from "../util/config"
 import { getImageColor } from "../util/color"
 import {
@@ -72,9 +64,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		await interaction.deferReply()
 
 		const id = parseInt(match[0])
-		const universeId = (
-			(await getPlaceDetails([id]))?.[0] as Place | undefined
-		)?.universeId
+		const universeId = await API.getUniverseIdFromPlaceId(id)
 		if (!universeId) {
 			return await interaction.editReply("Invalid link!")
 		}
@@ -84,13 +74,13 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			return await interaction.editReply("Already tracking that game!")
 		}
 
-		const universe = (await getUniverseDetails([universeId]))[0]
+		const universe = (await API.getUniverseDetails([universeId]))[0]
 
-		const universeIcons = await getUniverseIcons([universeId])
-		const imageUrl = universeIcons[0].imageUrl
+		const universeIcons = await API.getUniverseIcons([universeId])
+		const imageUrl = universeIcons[universeId]
 		const color = await getImageColor(imageUrl)
 
-		const badges = await getBadges(universeId)
+		const badges = await API.getBadges(universeId)
 		const toTrack = await updatedTrackedBadges(badges, maxAwarded)
 		stored.trackingGames[universeId] = {
 			...universe,
@@ -122,9 +112,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		await interaction.deferReply()
 
 		const id = parseInt(match[0])
-		const badge = await getBadge(id)
-		const icons = await getBadgeIcons([id])
-		const imageUrl = icons[0].imageUrl
+		const badge = await API.getBadge(id)
+		const icons = await API.getBadgeIcons([id])
+		const imageUrl = icons[id]
 		const color = await getImageColor(imageUrl)
 
 		const stored = await getStored()
