@@ -121,6 +121,9 @@ async function fetchBadge(client: Client, id: number) {
 
 	const stored = await getStored()
 	const previous = stored.trackingBadges[id]
+	if (!previous) {
+		return
+	}
 	if (badge.statistics.awardedCount > previous.statistics.awardedCount) {
 		stored.trackingBadges[id] = {
 			...previous,
