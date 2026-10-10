@@ -7,7 +7,8 @@ import logger from "./log"
 
 export async function handleNewTrackedBadges(
 	badges: Badge[],
-	maxAwarded: number
+	maxAwarded: number,
+	newGame?: boolean
 ) {
 	const stored = await getStored()
 	// Only track badges that are new or meet the maxAwarded count
@@ -26,6 +27,12 @@ export async function handleNewTrackedBadges(
 	for (const badge of toTrack) {
 		const imageUrl = badgeIcons[badge.id]
 		const color = await getImageColor(imageUrl)
+
+		// If we already have it tracked and stopped tracking the root game, should abort here
+		if (!newGame && !stored.trackingGames[badge.awardingUniverse.id]) {
+			return []
+		}
+
 		stored.trackingBadges[badge.id] = {
 			...badge,
 			imageUrl,

@@ -81,7 +81,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		const color = await getImageColor(imageUrl)
 
 		const badges = await API.getBadges(universeId)
-		const toTrack = await handleNewTrackedBadges(badges, maxAwarded)
+		const toTrack = await handleNewTrackedBadges(badges, maxAwarded, true)
 		stored.trackingGames[universeId] = {
 			...universe,
 			imageUrl,
