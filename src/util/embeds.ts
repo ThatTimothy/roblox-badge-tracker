@@ -3,9 +3,11 @@ import {
 	ChatInputCommandInteraction,
 	EmbedBuilder,
 	JSONEncodable,
+	time,
 } from "discord.js"
 import { BadgeData, GameData } from "./store"
 import { Badge } from "./api"
+import { TimestampStyles } from "discord.js"
 
 export function createGameEmbed(gameData: GameData, badges: number) {
 	return new EmbedBuilder()
@@ -19,6 +21,27 @@ export function createGameEmbed(gameData: GameData, badges: number) {
 				value: `${badges} badge${badges !== 1 ? "s" : ""}`,
 			},
 		])
+}
+
+export function createGameUpdateEmbed(
+	gameData: GameData,
+	updates: [string, unknown, unknown][],
+	currUpdated: Date | null
+) {
+	return new EmbedBuilder()
+		.setTitle(gameData.name)
+		.setURL(`https://roblox.com/games/${gameData.rootPlaceId}`)
+		.setDescription(
+			`was updated ${currUpdated ? time(currUpdated, TimestampStyles.RelativeTime) : ""}`
+		)
+		.setThumbnail(gameData.imageUrl)
+		.setColor(gameData.color)
+		.addFields(
+			updates.map(([name, old, curr]) => ({
+				name: name.charAt(0).toUpperCase() + name.slice(1),
+				value: `${`${old}`.slice(0, 500)} → ${`${curr}`.slice(0, 500)}`,
+			}))
+		)
 }
 
 export function createBadgeEmbed(badgeData: BadgeData, updated?: Badge) {

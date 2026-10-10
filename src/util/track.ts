@@ -1,9 +1,28 @@
-import { Client, SendableChannels } from "discord.js"
-import API from "./api"
+import { Client, SendableChannels, time, TimestampStyles } from "discord.js"
+import API, { Universe } from "./api"
 import { getImageColor } from "./color"
 import { getStored } from "./store"
-import { batchEmbedReply, createBadgeEmbed, createSuccessEmbed } from "./embeds"
+import {
+	batchEmbedReply,
+	createBadgeEmbed,
+	createGameUpdateEmbed,
+	createSuccessEmbed,
+} from "./embeds"
 import logger from "./log"
+
+const UNIVERSE_TRACKING_PROPERTIES: (keyof Universe)[] = [
+	"name",
+	"description",
+	"copyingAllowed",
+	"maxPlayers",
+	"created",
+	"updated",
+	"studioAccessToApisAllowed",
+	"createVipServersAllowed",
+	"universeAvatarType",
+	"genre",
+	"genre_l1",
+]
 
 async function getLogChannel(
 	client: Client
@@ -93,6 +112,7 @@ export async function trackGames(client: Client) {
 		universes.map((universe) => universe.id)
 	)
 
+	const embeds = []
 	for (const universe of universes) {
 		const imageUrl = icons[universe.id]
 		const color = await getImageColor(imageUrl)
@@ -101,18 +121,74 @@ export async function trackGames(client: Client) {
 		if (stored.trackingGames[universe.id]) {
 			stored.trackingGames[universe.id] = {
 				...stored.trackingGames[universe.id],
-				...universe,
 				color,
 				imageUrl,
 			}
+
+			const updates: [string, unknown, unknown][] = []
+			let timeSinceLastUpdate: number | null = null
+			let currUpdated: Date | null = null
+
+			for (const prop of UNIVERSE_TRACKING_PROPERTIES) {
+				const old = stored.trackingGames[universe.id][prop]
+				const current = universe[prop]
+				if (current != old) {
+					if (prop == "updated") {
+						const oldUpdated = new Date(old as string)
+						currUpdated = new Date(universe.updated)
+						timeSinceLastUpdate =
+							currUpdated.getTime() - oldUpdated.getTime()
+						updates.push([
+							prop,
+							time(
+								new Date(old as string),
+								TimestampStyles.LongDateShortTime
+							),
+							time(
+								currUpdated,
+								TimestampStyles.LongDateShortTime
+							),
+						])
+					} else {
+						updates.push([prop, old, current])
+					}
+				}
+			}
+
+			// Ignore stale data
+			if (timeSinceLastUpdate && timeSinceLastUpdate >= 0) {
+				// Only send embed if update
+				if (updates.length > 0) {
+					embeds.push(
+						createGameUpdateEmbed(
+							stored.trackingGames[universe.id],
+							updates,
+							currUpdated
+						)
+					)
+				}
+
+				stored.trackingGames[universe.id] = {
+					...stored.trackingGames[universe.id],
+					...universe,
+				}
+			}
 		}
 	}
+
+	const channel = await getLogChannel(client)
+	if (channel) {
+		batchEmbedReply((embeds) => channel.send({ embeds }), embeds)
+	}
+
 	logger.logGame("Updated game details")
 
 	while (queue.length > 0) {
 		const id = queue.pop()
 		if (id && stored.trackingGames[id]) {
-			logger.logGame(`Fetching ${id} (${queue.length} left in queue)`)
+			logger.logGame(
+				`Fetching badges for ${id} (${queue.length} left in queue)`
+			)
 			await checkNewGameBadges(client, id)
 		}
 	}

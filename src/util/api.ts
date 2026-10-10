@@ -26,8 +26,16 @@ export interface Universe {
 	id: number
 	rootPlaceId: number
 	name: string
+	description: string | null
+	copyingAllowed: boolean
+	maxPlayers: number
 	created: string
 	updated: string
+	studioAccessToApisAllowed: boolean
+	createVipServersAllowed: boolean
+	universeAvatarType: string
+	genre: string
+	genre_l1: string
 }
 
 export interface Badge {
