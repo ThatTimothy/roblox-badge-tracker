@@ -112,18 +112,20 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		await interaction.deferReply()
 
 		const id = parseInt(match[0])
+		const stored = await getStored()
+		if (stored.trackingBadges[id]) {
+			return await interaction.editReply("Already tracking that badge!")
+		}
+
 		const badge = await API.getBadge(id)
 		const icons = await API.getBadgeIcons([id])
 		const imageUrl = icons[id]
 		const color = await getImageColor(imageUrl)
 
-		const stored = await getStored()
-		if (!stored.trackingBadges[id]) {
-			stored.trackingBadges[id] = {
-				imageUrl,
-				color: color,
-				...badge,
-			}
+		stored.trackingBadges[id] = {
+			imageUrl,
+			color: color,
+			...badge,
 		}
 
 		interaction.editReply({
