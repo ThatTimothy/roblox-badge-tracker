@@ -12,7 +12,7 @@ import {
 	createBadgeEmbed,
 	createSuccessEmbed,
 } from "../util/embeds"
-import { updatedTrackedBadges } from "../util/track"
+import { handleNewTrackedBadges } from "../util/track"
 
 export const data = new SlashCommandBuilder()
 	.setName("track")
@@ -81,7 +81,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		const color = await getImageColor(imageUrl)
 
 		const badges = await API.getBadges(universeId)
-		const toTrack = await updatedTrackedBadges(badges, maxAwarded)
+		const toTrack = await handleNewTrackedBadges(badges, maxAwarded)
 		stored.trackingGames[universeId] = {
 			...universe,
 			imageUrl,

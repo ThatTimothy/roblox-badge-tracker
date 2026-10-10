@@ -4,7 +4,7 @@ import { getImageColor } from "./color"
 import { getStored } from "./store"
 import { batchEmbedReply, createBadgeEmbed, createSuccessEmbed } from "./embeds"
 
-export async function updatedTrackedBadges(
+export async function handleNewTrackedBadges(
 	badges: Badge[],
 	maxAwarded: number
 ) {
@@ -46,13 +46,13 @@ async function getLogChannel(
 	return channel
 }
 
-async function fetchGame(client: Client, id: number) {
+async function checkNewGameBadges(client: Client, id: number) {
 	const stored = await getStored()
 	const trackingGame = stored.trackingGames[id]
 	const maxAwarded = trackingGame.maxAwarded
 
 	const badges = await API.getBadges(id)
-	const toTrack = await updatedTrackedBadges(badges, maxAwarded)
+	const toTrack = await handleNewTrackedBadges(badges, maxAwarded)
 
 	if (toTrack.length > 0) {
 		console.log(`Found new badges for game ${id}`)
@@ -98,11 +98,14 @@ export async function trackGames(client: Client) {
 		const imageUrl = icons[universe.id]
 		const color = await getImageColor(imageUrl)
 
-		stored.trackingGames[universe.id] = {
-			...stored.trackingGames[universe.id],
-			...universe,
-			color,
-			imageUrl,
+		// Ensure still tracking game before updating
+		if (stored.trackingGames[universe.id]) {
+			stored.trackingGames[universe.id] = {
+				...stored.trackingGames[universe.id],
+				...universe,
+				color,
+				imageUrl,
+			}
 		}
 	}
 	console.log("Updated game details")
@@ -111,7 +114,7 @@ export async function trackGames(client: Client) {
 		const id = queue.pop()
 		if (id && stored.trackingGames[id]) {
 			console.log(`Fetching game ${id} (${queue.length} left in queue)`)
-			await fetchGame(client, id)
+			await checkNewGameBadges(client, id)
 		}
 	}
 }
@@ -121,6 +124,7 @@ async function fetchBadge(client: Client, id: number) {
 
 	const stored = await getStored()
 	const previous = stored.trackingBadges[id]
+	// Should always be true if still tracking badge
 	if (!previous) {
 		return
 	}

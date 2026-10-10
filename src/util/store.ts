@@ -15,7 +15,6 @@ export type GameData = Universe &
 interface Stored {
 	lastLogin?: number
 	logChannel?: string
-	statusChannel?: string
 	trackingGames: Record<number, GameData>
 	trackingBadges: Record<number, BadgeData>
 }
