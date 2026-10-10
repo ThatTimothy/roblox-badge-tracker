@@ -9,10 +9,7 @@ interface Theme {
 	imageUrl: string
 }
 export type BadgeData = Badge & Theme
-export type GameData = Universe &
-	Theme & {
-		maxAwarded: number
-	}
+export type GameData = Universe & Theme & { existingBadges: number[] }
 interface Stored {
 	lastLogin?: number
 	logChannel?: string

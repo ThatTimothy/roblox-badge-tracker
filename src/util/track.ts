@@ -1,47 +1,9 @@
 import { Client, SendableChannels } from "discord.js"
-import API, { Badge } from "./api"
+import API from "./api"
 import { getImageColor } from "./color"
 import { getStored } from "./store"
 import { batchEmbedReply, createBadgeEmbed, createSuccessEmbed } from "./embeds"
 import logger from "./log"
-
-export async function handleNewTrackedBadges(
-	badges: Badge[],
-	maxAwarded: number,
-	newGame?: boolean
-) {
-	const stored = await getStored()
-	// Only track badges that are new or meet the maxAwarded count
-	// maxAwarded < 0 means no requirement for awarded
-	const toTrack = badges.filter(
-		(badge) =>
-			!stored.trackingBadges[badge.id] &&
-			(maxAwarded < 0 || badge.statistics.awardedCount <= maxAwarded)
-	)
-
-	if (toTrack.length === 0) {
-		return []
-	}
-
-	const badgeIcons = await API.getBadgeIcons(toTrack.map((badge) => badge.id))
-	for (const badge of toTrack) {
-		const imageUrl = badgeIcons[badge.id]
-		const color = await getImageColor(imageUrl)
-
-		// If we already have it tracked and stopped tracking the root game, should abort here
-		if (!newGame && !stored.trackingGames[badge.awardingUniverse.id]) {
-			return []
-		}
-
-		stored.trackingBadges[badge.id] = {
-			...badge,
-			imageUrl,
-			color,
-		}
-	}
-
-	return toTrack
-}
 
 async function getLogChannel(
 	client: Client
@@ -57,17 +19,39 @@ async function getLogChannel(
 async function checkNewGameBadges(client: Client, id: number) {
 	const stored = await getStored()
 	const trackingGame = stored.trackingGames[id]
-	const maxAwarded = trackingGame.maxAwarded
 
 	const badges = await API.getBadges(id)
-	const toTrack = await handleNewTrackedBadges(badges, maxAwarded)
+	const existingBadges = trackingGame.existingBadges
+	const toTrack = badges.filter((badge) => !existingBadges.includes(badge.id))
 
 	if (toTrack.length > 0) {
+		const badgeIcons = await API.getBadgeIcons(
+			toTrack.map((badge) => badge.id)
+		)
+		for (const badge of toTrack) {
+			const imageUrl = badgeIcons[badge.id]
+			const color = await getImageColor(imageUrl)
+
+			// If we tracking the root game, should abort here
+			if (!stored.trackingGames[id]) {
+				return
+			}
+
+			stored.trackingBadges[badge.id] = {
+				...badge,
+				imageUrl,
+				color,
+			}
+		}
+
+		const totalBadgesTracked = Object.values(stored.trackingBadges).filter(
+			(trackingBadge) => trackingBadge.awardingUniverse.id == id
+		).length
 		logger.logGame(`Found ${toTrack.length} new badges for ${id}`)
 		const embeds = [
 			createSuccessEmbed(
 				`New Badges For ${trackingGame.name}`,
-				`Now tracking ${toTrack.length}${maxAwarded === null ? "" : ` (threshold <= ${maxAwarded.toLocaleString()} awarded)`}\n`
+				`Now tracking ${totalBadgesTracked} (+${toTrack.length})\n`
 			),
 			...toTrack.map((badge) =>
 				createBadgeEmbed(stored.trackingBadges[badge.id])
@@ -81,6 +65,13 @@ async function checkNewGameBadges(client: Client, id: number) {
 		}
 	} else {
 		logger.logGame(`No updates for ${id}`)
+	}
+
+	// Ensure still tracking, then update existing badges for next iteration
+	if (stored.trackingGames[id]) {
+		stored.trackingGames[id].existingBadges = badges.map(
+			(badge) => badge.id
+		)
 	}
 }
 

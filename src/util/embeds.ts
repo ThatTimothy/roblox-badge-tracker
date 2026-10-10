@@ -18,10 +18,6 @@ export function createGameEmbed(gameData: GameData, badges: number) {
 				name: "Tracking",
 				value: `${badges} badge${badges !== 1 ? "s" : ""}`,
 			},
-			{
-				name: "Max Awarded",
-				value: `${gameData.maxAwarded.toLocaleString()}${gameData.maxAwarded < 0 ? " (all badges)" : ""}`,
-			},
 		])
 }
 

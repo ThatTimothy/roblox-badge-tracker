@@ -63,6 +63,7 @@ Tracks a specific game's badges.
 
 `max-awarded` can be specified to filter the maximum awarded count to include. Set to `-1` to include all badges from a game.
 If not specified, defaults to 100. As an example, if `max-awarded` is 1000, only badges with 1000 or less awards would be tracked.
+This only applies to the initial scan - any new badges will be included regardless.
 
 ## `/track badge [link]`
 

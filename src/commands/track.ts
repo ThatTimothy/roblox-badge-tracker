@@ -12,7 +12,6 @@ import {
 	createBadgeEmbed,
 	createSuccessEmbed,
 } from "../util/embeds"
-import { handleNewTrackedBadges } from "../util/track"
 
 export const data = new SlashCommandBuilder()
 	.setName("track")
@@ -81,12 +80,33 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		const color = await getImageColor(imageUrl)
 
 		const badges = await API.getBadges(universeId)
-		const toTrack = await handleNewTrackedBadges(badges, maxAwarded, true)
+		// Only include badges that are within maxAwarded (negative maxAwarded means include everything)
+		const toTrack = badges.filter(
+			(badge) =>
+				maxAwarded < 0 || badge.statistics.awardedCount <= maxAwarded
+		)
+
+		if (toTrack.length > 0) {
+			const badgeIcons = await API.getBadgeIcons(
+				badges.map((badge) => badge.id)
+			)
+			for (const badge of toTrack) {
+				const imageUrl = badgeIcons[badge.id]
+				const color = await getImageColor(imageUrl)
+
+				stored.trackingBadges[badge.id] = {
+					...badge,
+					imageUrl,
+					color,
+				}
+			}
+		}
+
 		stored.trackingGames[universeId] = {
 			...universe,
 			imageUrl,
 			color,
-			maxAwarded,
+			existingBadges: badges.map((badge) => badge.id),
 		}
 
 		const embeds = [
