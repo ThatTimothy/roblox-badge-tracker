@@ -7,6 +7,7 @@ import {
 } from "discord.js"
 import { readdir } from "fs/promises"
 import path from "path"
+import logger from "./log"
 
 interface Command {
 	execute: (interaction: ChatInputCommandInteraction) => Promise<void>
@@ -36,9 +37,10 @@ export async function readCommands(): Promise<Record<string, Command>> {
 				autocomplete,
 			}
 		} else {
-			console.log(
-				`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
+			logger.error(
+				`The command at ${filePath} is missing a required "data" or "execute" property.`
 			)
+			process.exit(1)
 		}
 	}
 

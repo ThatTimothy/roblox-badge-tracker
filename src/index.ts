@@ -4,38 +4,41 @@ import { getStored, store } from "./util/store"
 import { readCommands } from "./util/commands"
 import { trackBadges, trackGames } from "./util/track"
 import API from "./util/api"
+import logger from "./util/log"
 
 const client = new Client({
 	intents: [],
 })
 
 async function track() {
-	await trackGames(client)
-	for (let i = 0; i < Config.BADGE_TRACKS_PER_GAME_TRACK; i++) {
-		await trackBadges(client)
+	try {
+		await Promise.all([trackGames(client), trackBadges(client)])
+	} catch (e) {
+		logger.error(e)
 	}
+
 	setTimeout(track)
 }
 
 client.once(Events.ClientReady, async (readyClient) => {
-	console.log("Successfully logged into Discord!")
+	logger.success("Successfully logged into Discord!")
 
 	const verified = await API.verify()
 	if ("message" in verified) {
-		console.error(
+		logger.error(
 			`Roblox API key is not valid - ${JSON.stringify(verified)}`
 		)
 		process.exit(1)
 	}
 	if (verified.expired) {
-		console.error("Roblox API key is expired - please update!")
+		logger.error("Roblox API key is expired - please update!")
 		process.exit(1)
 	}
 	if (!verified.enabled) {
-		console.error("Roblox API key is disabled - please enable!")
+		logger.error("Roblox API key is disabled - please enable!")
 		process.exit(1)
 	}
-	console.log(
+	logger.success(
 		`Roblox API key '${verified.name}' by ${verified.authorizedUserId} is verified!`
 	)
 
@@ -64,7 +67,7 @@ client.once(Events.ClientReady, async (readyClient) => {
 			const command = commands[interaction.commandName]
 
 			if (!command) {
-				console.error(
+				logger.error(
 					`No command matching ${interaction.commandName} was found.`
 				)
 				return
@@ -73,7 +76,7 @@ client.once(Events.ClientReady, async (readyClient) => {
 			try {
 				await command.execute(interaction)
 			} catch (error) {
-				console.error(error)
+				logger.error(error)
 				if (interaction.replied || interaction.deferred) {
 					await interaction.followUp({
 						content:
@@ -92,7 +95,7 @@ client.once(Events.ClientReady, async (readyClient) => {
 			const command = commands[interaction.commandName]
 
 			if (!command || !command.autocomplete) {
-				console.error(
+				logger.error(
 					`No command matching ${interaction.commandName} was found.`
 				)
 				return
@@ -101,12 +104,12 @@ client.once(Events.ClientReady, async (readyClient) => {
 			try {
 				await command.autocomplete(interaction)
 			} catch (error) {
-				console.error(error)
+				logger.error(error)
 			}
 		}
 	})
 
-	console.log("Setup complete!")
+	logger.success("Setup complete!")
 
 	// Tracking
 	track()

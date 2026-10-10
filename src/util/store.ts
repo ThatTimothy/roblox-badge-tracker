@@ -2,6 +2,7 @@ import { readFile, writeFile } from "fs/promises"
 import Config from "../util/config"
 import { Badge, Universe } from "./api"
 import { ColorResolvable } from "discord.js"
+import logger from "./log"
 
 interface Theme {
 	color: ColorResolvable
@@ -33,7 +34,7 @@ async function retrieve(): Promise<Stored> {
 			}
 		}
 
-		console.error(`Failed to read "${Config.STORE_FILE}": ${e}`)
+		logger.error(`Failed to read "${Config.STORE_FILE}": ${e}`)
 		process.exit(1)
 	}
 }
@@ -42,9 +43,9 @@ let isSaving = false
 export async function store() {
 	if (!loaded || isSaving) return
 	isSaving = true
-	console.log("Saving store...")
+	logger.log("Saving store...")
 	await writeFile(Config.STORE_FILE, JSON.stringify(loaded, null, 4))
-	console.log("Saved store")
+	logger.success("Saved store")
 	isSaving = false
 }
 

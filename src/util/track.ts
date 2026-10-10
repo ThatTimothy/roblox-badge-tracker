@@ -3,6 +3,7 @@ import API, { Badge } from "./api"
 import { getImageColor } from "./color"
 import { getStored } from "./store"
 import { batchEmbedReply, createBadgeEmbed, createSuccessEmbed } from "./embeds"
+import logger from "./log"
 
 export async function handleNewTrackedBadges(
 	badges: Badge[],
@@ -55,7 +56,7 @@ async function checkNewGameBadges(client: Client, id: number) {
 	const toTrack = await handleNewTrackedBadges(badges, maxAwarded)
 
 	if (toTrack.length > 0) {
-		console.log(`Found new badges for game ${id}`)
+		logger.logGame(`Found ${toTrack.length} new badges for ${id}`)
 		const embeds = [
 			createSuccessEmbed(
 				`New Badges For ${trackingGame.name}`,
@@ -69,10 +70,10 @@ async function checkNewGameBadges(client: Client, id: number) {
 		const channel = await getLogChannel(client)
 		if (channel) {
 			batchEmbedReply((embeds) => channel.send({ embeds }), embeds)
-			console.log(`Logged new badges for game ${id}`)
+			logger.logGame(`Logged new badges for ${id}`)
 		}
 	} else {
-		console.log(`No updates for game ${id}`)
+		logger.logGame(`No updates for ${id}`)
 	}
 }
 
@@ -86,7 +87,7 @@ export async function trackGames(client: Client) {
 		return
 	}
 
-	console.log("Refetching game details...")
+	logger.logGame("Refetching game details...")
 	const universes = await API.getUniverseDetails(
 		Object.values(stored.trackingGames).map((game) => game.id)
 	)
@@ -108,12 +109,12 @@ export async function trackGames(client: Client) {
 			}
 		}
 	}
-	console.log("Updated game details")
+	logger.logGame("Updated game details")
 
 	while (queue.length > 0) {
 		const id = queue.pop()
 		if (id && stored.trackingGames[id]) {
-			console.log(`Fetching game ${id} (${queue.length} left in queue)`)
+			logger.logGame(`Fetching ${id} (${queue.length} left in queue)`)
 			await checkNewGameBadges(client, id)
 		}
 	}
@@ -133,16 +134,16 @@ async function fetchBadge(client: Client, id: number) {
 			...previous,
 			...badge,
 		}
-		console.log(`Updated badge ${id}`)
+		logger.logBadge(`Updated ${id}`)
 		const channel = await getLogChannel(client)
 		if (channel) {
 			await channel.send({
 				embeds: [createBadgeEmbed(previous, badge)],
 			})
-			console.log(`Logged badge ${id}`)
+			logger.logBadge(`Logged ${id}`)
 		}
 	} else {
-		console.log(`No updates for badge ${id}`)
+		logger.logBadge(`No updates for ${id}`)
 	}
 }
 
@@ -153,7 +154,7 @@ export async function trackBadges(client: Client) {
 	while (queue.length > 0) {
 		const id = queue.pop()
 		if (id && stored.trackingBadges[id]) {
-			console.log(`Fetching badge ${id} (${queue.length} left in queue)`)
+			logger.logBadge(`Fetching ${id} (${queue.length} left in queue)`)
 			await fetchBadge(client, id)
 		}
 	}
