@@ -5,6 +5,7 @@ import { readCommands } from "./util/commands"
 import { trackBadges, trackGames } from "./util/track"
 import API from "./util/api"
 import logger from "./util/log"
+import { readButtons } from "./util/buttons"
 
 const client = new Client({
 	intents: [],
@@ -62,6 +63,7 @@ client.once(Events.ClientReady, async (readyClient) => {
 	process.once("SIGQUIT", shutdown)
 
 	const commands = await readCommands()
+	const buttons = await readButtons()
 	readyClient.on(Events.InteractionCreate, async (interaction) => {
 		if (interaction.isChatInputCommand()) {
 			const command = commands[interaction.commandName]
@@ -103,6 +105,19 @@ client.once(Events.ClientReady, async (readyClient) => {
 
 			try {
 				await command.autocomplete(interaction)
+			} catch (error) {
+				logger.error(error)
+			}
+		} else if (interaction.isButton()) {
+			const base = interaction.customId.split(":")[0]
+			const button = buttons[base]
+			if (!button) {
+				logger.error(`No button matching ${base} was found.`)
+				return
+			}
+
+			try {
+				await button.execute(interaction)
 			} catch (error) {
 				logger.error(error)
 			}

@@ -1,6 +1,10 @@
 import {
+	ActionRowBuilder,
 	ApplicationCommandOptionChoiceData,
 	AutocompleteInteraction,
+	ButtonBuilder,
+	ButtonInteraction,
+	ButtonStyle,
 	ChatInputCommandInteraction,
 	SlashCommandBuilder,
 	SlashCommandSubcommandBuilder,
@@ -36,6 +40,35 @@ export const data = new SlashCommandBuilder()
 			)
 	)
 
+export async function untrackGame(
+	interaction: ChatInputCommandInteraction | ButtonInteraction,
+	id: number
+) {
+	const stored = await getStored()
+	const trackingGame = Object.values(stored.trackingGames).find(
+		(trackingGame) => trackingGame.rootPlaceId == id
+	)
+	if (!trackingGame) {
+		return await interaction.reply("Not tracking that game!")
+	}
+
+	const badges = Object.values(stored.trackingBadges).filter(
+		(badge) => badge.awardingUniverse.rootPlaceId === id
+	)
+
+	delete stored.trackingGames[trackingGame.id]
+	badges.forEach((badge) => delete stored.trackingBadges[badge.id])
+
+	interaction.reply({
+		embeds: [
+			createSuccessEmbed(
+				`Stopped Tracking ${trackingGame.name}`,
+				`Stopped tracking ${badges.length} badges from [${trackingGame.name}](https://roblox.com/games/${id})`
+			),
+		],
+	})
+}
+
 export async function execute(interaction: ChatInputCommandInteraction) {
 	const subcommand = interaction.options.getSubcommand()
 	if (subcommand === "game") {
@@ -47,29 +80,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		}
 
 		const id = parseInt(match[0])
-		const stored = await getStored()
-		const trackingGame = Object.values(stored.trackingGames).find(
-			(trackingGame) => trackingGame.rootPlaceId == id
-		)
-		if (!trackingGame) {
-			return await interaction.reply("Not tracking that game!")
-		}
-
-		const badges = Object.values(stored.trackingBadges).filter(
-			(badge) => badge.awardingUniverse.rootPlaceId === id
-		)
-
-		delete stored.trackingGames[trackingGame.id]
-		badges.forEach((badge) => delete stored.trackingBadges[badge.id])
-
-		interaction.reply({
-			embeds: [
-				createSuccessEmbed(
-					`Stopped Tracking ${trackingGame.name}`,
-					`Stopped tracking ${badges.length} badges from [${trackingGame.name}](https://roblox.com/games/${id})`
-				),
-			],
-		})
+		await untrackGame(interaction, id)
 	} else {
 		const link = interaction.options.getString("link", true)
 		const match = link.match(/(\d+)/)
@@ -87,6 +98,19 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		const badge = stored.trackingBadges[id]
 		delete stored.trackingBadges[id]
 
+		const showUntrackButton =
+			badge.awardingUniverse.id in stored.trackingGames
+		const untrackButton = new ButtonBuilder()
+			.setCustomId(`untrack-game:${badge.awardingUniverse.rootPlaceId}`)
+			.setLabel(
+				`Untrack Game ${badge.awardingUniverse.name}`.slice(0, 80)
+			)
+			.setStyle(ButtonStyle.Danger)
+		const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+			untrackButton
+		)
+		const components = showUntrackButton ? [row] : undefined
+
 		interaction.reply({
 			embeds: [
 				createSuccessEmbed(
@@ -94,6 +118,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 					`Stopped tracking [${badge.name}](<https://roblox.com/badges/${badge.id}>) (in [${badge.awardingUniverse.name}](https://roblox.com/games/${badge.awardingUniverse.rootPlaceId}))`
 				),
 			],
+			components,
 		})
 	}
 }
