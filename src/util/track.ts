@@ -182,8 +182,9 @@ export async function trackGames(client: Client) {
 			)
 			if (result) {
 				const { updates, currUpdated } = result
-				// Only send embed if update
+				// Only if a meaningful update
 				if (updates.length > 0) {
+					logger.logGame(`Updated ${universe.id}`)
 					embeds.push(
 						createGameUpdateEmbed(
 							stored.trackingGames[universe.id],
@@ -201,12 +202,15 @@ export async function trackGames(client: Client) {
 		}
 	}
 
-	const channel = await getLogChannel(client)
-	if (channel) {
-		batchEmbedReply((embeds) => channel.send({ embeds }), embeds)
+	if (embeds.length > 0) {
+		const channel = await getLogChannel(client)
+		if (channel) {
+			batchEmbedReply((embeds) => channel.send({ embeds }), embeds)
+			logger.logGame("Logged updates for games")
+		}
+	} else {
+		logger.logGame("No updates for games")
 	}
-
-	logger.logGame("Updated game details")
 
 	while (queue.length > 0) {
 		const id = queue.pop()
@@ -233,8 +237,9 @@ async function fetchBadge(client: Client, id: number) {
 	const result = getUpdates(previous, badge, BADGE_TRACKING_PROPERTIES)
 	if (result) {
 		const { updates, currUpdated } = result
-		// Only send embed if update
+		// Only if a meaningful update
 		if (updates.length > 0) {
+			logger.logBadge(`Updated ${id}`)
 			embeds.push(
 				createBadgeUpdateEmbed(
 					stored.trackingBadges[id],
@@ -251,10 +256,10 @@ async function fetchBadge(client: Client, id: number) {
 	}
 
 	if (badge.statistics.awardedCount > previous.statistics.awardedCount) {
-		logger.logBadge(`Updated ${id}`)
+		logger.logBadge(
+			`Updated award count for ${id} - ${previous.statistics.awardedCount} -> ${badge.statistics.awardedCount}`
+		)
 		embeds.push(createBadgeEmbed(previous, badge))
-	} else {
-		logger.logBadge(`No updates for ${id}`)
 	}
 
 	if (embeds.length > 0) {
@@ -263,6 +268,8 @@ async function fetchBadge(client: Client, id: number) {
 			batchEmbedReply((embeds) => channel.send({ embeds }), embeds)
 			logger.logBadge(`Logged ${id}`)
 		}
+	} else {
+		logger.logBadge(`No updates for ${id}`)
 	}
 }
 
