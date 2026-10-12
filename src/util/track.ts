@@ -1,10 +1,11 @@
 import { Client, SendableChannels, time, TimestampStyles } from "discord.js"
-import API, { Universe } from "./api"
+import API, { Badge, Universe } from "./api"
 import { getImageColor } from "./color"
 import { getStored } from "./store"
 import {
 	batchEmbedReply,
 	createBadgeEmbed,
+	createBadgeUpdateEmbed,
 	createGameUpdateEmbed,
 	createSuccessEmbed,
 } from "./embeds"
@@ -22,6 +23,15 @@ const UNIVERSE_TRACKING_PROPERTIES: (keyof Universe)[] = [
 	"universeAvatarType",
 	"genre",
 	"genre_l1",
+]
+
+const BADGE_TRACKING_PROPERTIES: (keyof Badge)[] = [
+	"name",
+	"description",
+	"enabled",
+	"iconImageId",
+	"created",
+	"updated",
 ]
 
 async function getLogChannel(
@@ -94,6 +104,46 @@ async function checkNewGameBadges(client: Client, id: number) {
 	}
 }
 
+// Gets all updates for a given old and current object for which updated is provided
+// This works for Universe and Badge currently to avoid duplicating time logic
+function getUpdates<T extends { updated: string }>(
+	old: T,
+	current: T,
+	tracking: (keyof T & string)[]
+) {
+	const updates: [string, unknown, unknown][] = []
+	const oldUpdated = new Date(old.updated)
+	const currUpdated = new Date(current.updated)
+
+	for (const prop of tracking) {
+		const oldProp = old[prop]
+		const currentProp = current[prop]
+		if (currentProp != oldProp) {
+			if (prop === "updated") {
+				updates.push([
+					prop,
+					time(oldUpdated, TimestampStyles.LongDateShortTime),
+					time(currUpdated, TimestampStyles.LongDateShortTime),
+				])
+			} else {
+				updates.push([prop, oldProp, currentProp])
+			}
+		}
+	}
+
+	// Ignore stale data
+	const timeSinceLastUpdate =
+		oldUpdated &&
+		currUpdated &&
+		currUpdated.getTime() - oldUpdated.getTime()
+	if (timeSinceLastUpdate >= 0) {
+		return {
+			updates,
+			currUpdated,
+		}
+	}
+}
+
 export async function trackGames(client: Client) {
 	const stored = await getStored()
 	const queue = Object.values(stored.trackingGames).map(
@@ -125,38 +175,13 @@ export async function trackGames(client: Client) {
 				imageUrl,
 			}
 
-			const updates: [string, unknown, unknown][] = []
-			let timeSinceLastUpdate: number | null = null
-			let currUpdated: Date | null = null
-
-			for (const prop of UNIVERSE_TRACKING_PROPERTIES) {
-				const old = stored.trackingGames[universe.id][prop]
-				const current = universe[prop]
-				if (current != old) {
-					if (prop == "updated") {
-						const oldUpdated = new Date(old as string)
-						currUpdated = new Date(universe.updated)
-						timeSinceLastUpdate =
-							currUpdated.getTime() - oldUpdated.getTime()
-						updates.push([
-							prop,
-							time(
-								new Date(old as string),
-								TimestampStyles.LongDateShortTime
-							),
-							time(
-								currUpdated,
-								TimestampStyles.LongDateShortTime
-							),
-						])
-					} else {
-						updates.push([prop, old, current])
-					}
-				}
-			}
-
-			// Ignore stale data
-			if (timeSinceLastUpdate && timeSinceLastUpdate >= 0) {
+			const result = getUpdates(
+				stored.trackingGames[universe.id],
+				universe,
+				UNIVERSE_TRACKING_PROPERTIES
+			)
+			if (result) {
+				const { updates, currUpdated } = result
 				// Only send embed if update
 				if (updates.length > 0) {
 					embeds.push(
@@ -203,21 +228,41 @@ async function fetchBadge(client: Client, id: number) {
 	if (!previous) {
 		return
 	}
-	if (badge.statistics.awardedCount > previous.statistics.awardedCount) {
+
+	const embeds = []
+	const result = getUpdates(previous, badge, BADGE_TRACKING_PROPERTIES)
+	if (result) {
+		const { updates, currUpdated } = result
+		// Only send embed if update
+		if (updates.length > 0) {
+			embeds.push(
+				createBadgeUpdateEmbed(
+					stored.trackingBadges[id],
+					updates,
+					currUpdated
+				)
+			)
+		}
+
 		stored.trackingBadges[id] = {
 			...previous,
 			...badge,
 		}
+	}
+
+	if (badge.statistics.awardedCount > previous.statistics.awardedCount) {
 		logger.logBadge(`Updated ${id}`)
-		const channel = await getLogChannel(client)
-		if (channel) {
-			await channel.send({
-				embeds: [createBadgeEmbed(previous, badge)],
-			})
-			logger.logBadge(`Logged ${id}`)
-		}
+		embeds.push(createBadgeEmbed(previous, badge))
 	} else {
 		logger.logBadge(`No updates for ${id}`)
+	}
+
+	if (embeds.length > 0) {
+		const channel = await getLogChannel(client)
+		if (channel) {
+			batchEmbedReply((embeds) => channel.send({ embeds }), embeds)
+			logger.logBadge(`Logged ${id}`)
+		}
 	}
 }
 

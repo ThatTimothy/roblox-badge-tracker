@@ -49,7 +49,7 @@ export function createBadgeEmbed(badgeData: BadgeData, updated?: Badge) {
 	const updatedCount = updated?.statistics.awardedCount
 	const awardingUniverse = (updated || badgeData).awardingUniverse
 	return new EmbedBuilder()
-		.setTitle(updated?.name || badgeData.name)
+		.setTitle(badgeData.name)
 		.setURL(`https://roblox.com/badges/${badgeData.id}`)
 		.setDescription(
 			`in [**${awardingUniverse.name}**](https://roblox.com/games/${awardingUniverse.rootPlaceId})`
@@ -65,6 +65,27 @@ export function createBadgeEmbed(badgeData: BadgeData, updated?: Badge) {
 						: previousCount.toString(),
 			},
 		])
+}
+
+export function createBadgeUpdateEmbed(
+	badgeData: BadgeData,
+	updates: [string, unknown, unknown][],
+	currUpdated: Date | null
+) {
+	return new EmbedBuilder()
+		.setTitle(badgeData.name)
+		.setURL(`https://roblox.com/badges/${badgeData.id}`)
+		.setDescription(
+			`was updated ${currUpdated ? time(currUpdated, TimestampStyles.RelativeTime) : ""}`
+		)
+		.setThumbnail(badgeData.imageUrl)
+		.setColor(badgeData.color)
+		.addFields(
+			updates.map(([name, old, curr]) => ({
+				name: name.charAt(0).toUpperCase() + name.slice(1),
+				value: `${`${old}`.slice(0, 500)} → ${`${curr}`.slice(0, 500)}`,
+			}))
+		)
 }
 
 export function createSuccessEmbed(title: string, description: string) {

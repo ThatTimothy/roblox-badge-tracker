@@ -41,6 +41,11 @@ export interface Universe {
 export interface Badge {
 	id: number
 	name: string
+	description: string
+	enabled: boolean
+	iconImageId: number
+	created: string
+	updated: string
 	statistics: {
 		awardedCount: number
 	}
