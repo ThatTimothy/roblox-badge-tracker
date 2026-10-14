@@ -165,39 +165,53 @@ export async function trackGames(client: Client) {
 	const embeds = []
 	for (const universe of universes) {
 		const imageUrl = icons[universe.id]
-		const color = await getImageColor(imageUrl)
-
-		// Ensure still tracking game before updating
-		if (stored.trackingGames[universe.id]) {
+		const previous = stored.trackingGames[universe.id]
+		const result = getUpdates(
+			previous,
+			universe,
+			UNIVERSE_TRACKING_PROPERTIES
+		)
+		if (result) {
 			stored.trackingGames[universe.id] = {
-				...stored.trackingGames[universe.id],
-				color,
-				imageUrl,
+				...previous,
+				...universe,
 			}
 
-			const result = getUpdates(
-				stored.trackingGames[universe.id],
-				universe,
-				UNIVERSE_TRACKING_PROPERTIES
-			)
-			if (result) {
-				const { updates, currUpdated } = result
-				// Only if a meaningful update
-				if (updates.length > 0) {
-					logger.logGame(`Updated ${universe.id}`)
-					embeds.push(
-						createGameUpdateEmbed(
-							stored.trackingGames[universe.id],
-							updates,
-							currUpdated
-						)
-					)
+			const { updates, currUpdated } = result
+			// Check past two image urls to verify not API returning old version (this can happen when new image is rolling out)
+			const imageUrlChanged =
+				previous.imageUrl !== imageUrl &&
+				previous.previousImageUrl !== imageUrl
+
+			// Only if a meaningful update (including universe icon changing)
+			if (updates.length > 0 || imageUrlChanged) {
+				let color = previous.color
+				// Update image (if changed)
+				if (imageUrlChanged) {
+					color = await getImageColor(imageUrl)
+					updates.push(["ImageUrl", previous.imageUrl, imageUrl])
+				}
+				// Ensure still tracking game before updating
+				if (!stored.trackingGames[universe.id]) {
+					continue
 				}
 
 				stored.trackingGames[universe.id] = {
 					...stored.trackingGames[universe.id],
-					...universe,
+					previousImageUrl: previous.imageUrl,
+					imageUrl,
+					color,
 				}
+
+				// Log & embed
+				logger.logGame(`Updated ${universe.id}`)
+				embeds.push(
+					createGameUpdateEmbed(
+						stored.trackingGames[universe.id],
+						updates,
+						currUpdated
+					)
+				)
 			}
 		}
 	}
