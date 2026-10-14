@@ -10,6 +10,8 @@ import {
 	createSuccessEmbed,
 } from "./embeds"
 import logger from "./log"
+import { sleep } from "./sleep"
+import Config from "./config"
 
 const UNIVERSE_TRACKING_PROPERTIES: (keyof Universe)[] = [
 	"name",
@@ -229,10 +231,14 @@ export async function trackGames(client: Client) {
 	while (queue.length > 0) {
 		const id = queue.pop()
 		if (id && stored.trackingGames[id]) {
+			const start = Date.now()
 			logger.logGame(
 				`Fetching badges for ${id} (${queue.length} left in queue)`
 			)
 			await checkNewGameBadges(client, id)
+			await sleep(
+				Config.GAME_CHECK_NEW_BADGES_INTERVAL_MS - (Date.now() - start)
+			)
 		}
 	}
 }
@@ -321,8 +327,10 @@ export async function trackBadges(client: Client) {
 	while (queue.length > 0) {
 		const id = queue.pop()
 		if (id && stored.trackingBadges[id]) {
+			const start = Date.now()
 			logger.logBadge(`Fetching ${id} (${queue.length} left in queue)`)
 			await fetchBadge(client, id, badgeIcons[id])
+			await sleep(Config.BADGE_FETCH_INTERVAL_MS - (Date.now() - start))
 		}
 	}
 }

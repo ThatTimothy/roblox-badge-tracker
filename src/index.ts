@@ -6,14 +6,26 @@ import { trackBadges, trackGames } from "./util/track"
 import API from "./util/api"
 import logger from "./util/log"
 import { readButtons } from "./util/buttons"
+import { sleep } from "./util/sleep"
 
 const client = new Client({
 	intents: [],
 })
 
 async function track() {
+	async function trackGamesLoop() {
+		const start = Date.now()
+		await trackGames(client)
+		await sleep(Config.GAME_LOOP_INTERVAL_MS - (Date.now() - start))
+	}
+	async function trackBadgesLoop() {
+		const start = Date.now()
+		await trackBadges(client)
+		await sleep(Config.BADGE_LOOP_INTERVAL_MS - (Date.now() - start))
+	}
+
 	try {
-		await Promise.all([trackGames(client), trackBadges(client)])
+		await Promise.allSettled([trackGamesLoop(), trackBadgesLoop()])
 	} catch (e) {
 		logger.error(e)
 	}
