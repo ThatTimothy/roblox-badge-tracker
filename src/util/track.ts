@@ -173,6 +173,10 @@ export async function trackGames(client: Client) {
 			universe,
 			UNIVERSE_TRACKING_PROPERTIES
 		)
+		// Ensure still tracking game before updating
+		if (!stored.trackingGames[universe.id]) {
+			continue
+		}
 		if (result) {
 			stored.trackingGames[universe.id] = {
 				...previous,
