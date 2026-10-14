@@ -177,9 +177,13 @@ export async function trackGames(client: Client) {
 		if (!stored.trackingGames[universe.id]) {
 			continue
 		}
+		stored.trackingGames[universe.id] = {
+			...stored.trackingGames[universe.id],
+			lastChecked: Date.now(),
+		}
 		if (result) {
 			stored.trackingGames[universe.id] = {
-				...previous,
+				...stored.trackingGames[universe.id],
 				...universe,
 			}
 

@@ -10,7 +10,8 @@ interface Theme {
 	previousImageUrl?: string
 }
 export type BadgeData = Badge & Theme
-export type GameData = Universe & Theme & { existingBadges: number[] }
+export type GameData = Universe &
+	Theme & { lastChecked: number; existingBadges: number[] }
 interface Stored {
 	lastLogin?: number
 	logChannel?: string

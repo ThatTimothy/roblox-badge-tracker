@@ -20,6 +20,14 @@ export function createGameEmbed(gameData: GameData, badges: number) {
 				name: "Tracking",
 				value: `${badges} badge${badges !== 1 ? "s" : ""}`,
 			},
+			{
+				name: "Last Checked",
+				value: `${time(Math.round(gameData.lastChecked / 1000), TimestampStyles.RelativeTime)}`,
+			},
+			{
+				name: "Last Updated",
+				value: `${time(new Date(gameData.updated), TimestampStyles.LongDateShortTime)}`,
+			},
 		])
 }
 

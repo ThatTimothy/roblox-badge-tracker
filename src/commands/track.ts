@@ -107,6 +107,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			imageUrl,
 			color,
 			existingBadges: badges.map((badge) => badge.id),
+			lastChecked: Date.now(),
 		}
 
 		const embeds = [
