@@ -223,7 +223,7 @@ export async function trackGames(client: Client) {
 	}
 }
 
-async function fetchBadge(client: Client, id: number) {
+async function fetchBadge(client: Client, id: number, imageUrl: string) {
 	const badge = await API.getBadge(id)
 
 	const stored = await getStored()
@@ -236,9 +236,40 @@ async function fetchBadge(client: Client, id: number) {
 	const embeds = []
 	const result = getUpdates(previous, badge, BADGE_TRACKING_PROPERTIES)
 	if (result) {
+		stored.trackingBadges[id] = {
+			...previous,
+			...badge,
+		}
+
 		const { updates, currUpdated } = result
-		// Only if a meaningful update
-		if (updates.length > 0) {
+
+		// Check past two image urls to verify not API returning old version (this can happen when new image is rolling out)
+		const imageUrlChanged =
+			previous.imageUrl !== imageUrl &&
+			previous.previousImageUrl !== imageUrl
+
+		// Only if a meaningful update (including badge icon changing)
+		if (updates.length > 0 || imageUrlChanged) {
+			// Update image (if changed)
+			let color = previous.color
+			if (imageUrlChanged) {
+				color = await getImageColor(imageUrl)
+				updates.push(["ImageUrl", previous.imageUrl, imageUrl])
+			}
+
+			// Ensure we are still tracking
+			if (!stored.trackingBadges[id]) {
+				return
+			}
+
+			stored.trackingBadges[id] = {
+				...stored.trackingBadges[id],
+				previousImageUrl: previous.imageUrl,
+				imageUrl,
+				color,
+			}
+
+			// Log & embed
 			logger.logBadge(`Updated ${id}`)
 			embeds.push(
 				createBadgeUpdateEmbed(
@@ -247,11 +278,6 @@ async function fetchBadge(client: Client, id: number) {
 					currUpdated
 				)
 			)
-		}
-
-		stored.trackingBadges[id] = {
-			...previous,
-			...badge,
 		}
 	}
 
@@ -276,12 +302,13 @@ async function fetchBadge(client: Client, id: number) {
 export async function trackBadges(client: Client) {
 	const stored = await getStored()
 	const queue = Object.values(stored.trackingBadges).map((badge) => badge.id)
+	const badgeIcons = await API.getBadgeIcons(queue)
 
 	while (queue.length > 0) {
 		const id = queue.pop()
 		if (id && stored.trackingBadges[id]) {
 			logger.logBadge(`Fetching ${id} (${queue.length} left in queue)`)
-			await fetchBadge(client, id)
+			await fetchBadge(client, id, badgeIcons[id])
 		}
 	}
 }

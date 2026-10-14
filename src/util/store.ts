@@ -7,6 +7,7 @@ import logger from "./log"
 interface Theme {
 	color: ColorResolvable
 	imageUrl: string
+	previousImageUrl?: string
 }
 export type BadgeData = Badge & Theme
 export type GameData = Universe & Theme & { existingBadges: number[] }
