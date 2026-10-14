@@ -72,6 +72,7 @@ async function checkNewGameBadges(client: Client, id: number) {
 				...badge,
 				imageUrl,
 				color,
+				lastChecked: Date.now(),
 			}
 		}
 
@@ -260,12 +261,16 @@ async function fetchBadge(client: Client, id: number, imageUrl: string) {
 	if (!previous) {
 		return
 	}
+	stored.trackingBadges[id] = {
+		...stored.trackingBadges[id],
+		lastChecked: Date.now(),
+	}
 
 	const embeds = []
 	const result = getUpdates(previous, badge, BADGE_TRACKING_PROPERTIES)
 	if (result) {
 		stored.trackingBadges[id] = {
-			...previous,
+			...stored.trackingBadges[id],
 			...badge,
 		}
 

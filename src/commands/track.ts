@@ -98,6 +98,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 					...badge,
 					imageUrl,
 					color,
+					lastChecked: Date.now(),
 				}
 			}
 		}
@@ -146,6 +147,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		stored.trackingBadges[id] = {
 			imageUrl,
 			color: color,
+			lastChecked: Date.now(),
 			...badge,
 		}
 
