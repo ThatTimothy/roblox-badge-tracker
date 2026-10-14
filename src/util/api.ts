@@ -163,6 +163,8 @@ class APIClient {
 		return this.request(key, url, "POST", body)
 	}
 
+	// Gets a set of universes from a list of universe ids
+	// x-ratelimit-limit: 300, 300;w=60
 	async getUniverseDetails(universeIds: number[]): Promise<Universe[]> {
 		const url = new URL(`${GAMES_API}/v1/games`)
 		for (const universeId of universeIds) {
@@ -172,6 +174,8 @@ class APIClient {
 		return json["data"]
 	}
 
+	// Gets a universe id from a place id
+	// x-ratelimit-limit: 60, 60;w=60
 	async getUniverseIdFromPlaceId(
 		placeId: number
 	): Promise<number | undefined> {
@@ -182,6 +186,8 @@ class APIClient {
 		return json["universeId"]
 	}
 
+	// Gets a single page of badges
+	// x-ratelimit-limit: 100, 100;w=60
 	private async getBadgePage(
 		universeId: number,
 		pageCursor?: string
@@ -195,6 +201,8 @@ class APIClient {
 		return this.get(`${BADGES_API}/v1/universes/[id]/badges`, url)
 	}
 
+	// Iterates pages of badges until all have been fetched
+	// Singular page endpoint has 100/minute ratelimit, so this endpoint uses ceil(badges.length / 100) number of that limit
 	async getBadges(universeId: number): Promise<Badge[]> {
 		const badges = []
 
@@ -215,6 +223,8 @@ class APIClient {
 		return badges
 	}
 
+	// Gets a single badge
+	// x-ratelimit-limit: 600, 600;w=60
 	async getBadge(badgeId: number): Promise<Badge> {
 		return this.get(
 			`${BADGES_API}/v1/badges/[id]`,
@@ -222,6 +232,9 @@ class APIClient {
 		)
 	}
 
+	// Gets a set of badge icons for provided ids
+	// Returned as table of id -> imageUrl
+	// x-ratelimit-limit: 100, 100;w=60
 	async getBadgeIcons(badgeIds: number[]): Promise<Record<number, string>> {
 		const url = new URL(`${THUMBNAILS_API}/v1/badges/icons`)
 		url.searchParams.append("size", "150x150")
@@ -240,6 +253,10 @@ class APIClient {
 
 		return mapping
 	}
+
+	// Gets a set of universe icons for provided ids
+	// Returned as table of id -> imageUrl
+	// x-ratelimit-limit: 1200, 1200;w=60
 	async getUniverseIcons(
 		universeIds: number[]
 	): Promise<Record<number, string>> {
