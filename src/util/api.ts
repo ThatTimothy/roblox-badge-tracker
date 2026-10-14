@@ -1,4 +1,5 @@
 import Config from "./config"
+import logger from "./log"
 import { sleep } from "./sleep"
 
 const API_BASE = "https://apis.roblox.com"
@@ -92,7 +93,11 @@ class APIClient {
 
 			// If bucket has no requests left and is not due for reset, then wait for the reset
 			if (bucket.remaining <= 0 && bucket.reset > Date.now()) {
-				await sleep(Math.max(50, bucket.reset - Date.now()))
+				const tryAgainIn = bucket.reset - Date.now()
+				logger.warn(
+					`Ratelimited, trying again in ${Math.ceil(tryAgainIn / 1000)} seconds`
+				)
+				await sleep(Math.max(50, tryAgainIn))
 			}
 
 			// Make the request
@@ -134,6 +139,9 @@ class APIClient {
 				// Prefer: ratelimitReset, then retryAfter, and if no headers then backoff by number of attempts
 				const tryAgainInSeconds =
 					(retryAfter || ratelimitReset) ?? attempts * 5
+				logger.warn(
+					`Ratelimited, trying again in ${tryAgainInSeconds} seconds`
+				)
 				await sleep(tryAgainInSeconds * 1000)
 				continue
 			}

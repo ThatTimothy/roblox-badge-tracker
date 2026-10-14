@@ -10,6 +10,10 @@ class Logger {
 		console.log(styleText("green", format(...args)))
 	}
 
+	warn(...args: unknown[]) {
+		console.log(styleText("yellow", format(...args)))
+	}
+
 	error(...args: unknown[]) {
 		console.error(styleText("red", format(...args), { stream: stderr }))
 	}
