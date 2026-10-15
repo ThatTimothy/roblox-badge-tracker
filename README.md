@@ -57,6 +57,10 @@ Logs all the games being tracked.
 
 Logs all the badges being tracked.
 
+## `/award-history (link)`
+
+Displays a graph of awarded over time for all tracked badges or an optional specific tracked badge.
+
 ## `/track game [link] (max-awarded)`
 
 Tracks a specific game's badges.

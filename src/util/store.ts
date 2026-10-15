@@ -1,11 +1,11 @@
 import { readFile, writeFile } from "fs/promises"
 import Config from "../util/config"
 import { Badge, Universe } from "./api"
-import { ColorResolvable } from "discord.js"
 import logger from "./log"
+import { RGB } from "./color"
 
 interface Theme {
-	color: ColorResolvable
+	color: RGB
 	imageUrl: string
 	previousImageUrl?: string
 }

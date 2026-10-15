@@ -1,12 +1,13 @@
-import { ColorResolvable } from "discord.js"
 import sharp from "sharp"
+
+export type RGB = readonly [red: number, green: number, blue: number]
 
 const adjustSaturation = (
 	r: number,
 	g: number,
 	b: number,
 	saturationFactor: number
-): ColorResolvable => {
+): RGB => {
 	// Calculate grayscale using weighted average (luminosity)
 	const gray = 0.2989 * r + 0.587 * g + 0.114 * b
 
@@ -28,9 +29,7 @@ const adjustSaturation = (
 	]
 }
 
-export async function getImageColor(
-	imageUrl: string
-): Promise<ColorResolvable> {
+export async function getImageColor(imageUrl: string): Promise<RGB> {
 	const response = await fetch(imageUrl)
 	const buffer = await response.arrayBuffer()
 
@@ -42,4 +41,8 @@ export async function getImageColor(
 
 	const [r, g, b] = data
 	return adjustSaturation(r, g, b, 3)
+}
+
+export function getHexColor(color: RGB) {
+	return `#${color.map((n) => n.toString(16).padStart(2, "0")).join("")}`
 }
