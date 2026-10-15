@@ -9,7 +9,7 @@ interface Theme {
 	imageUrl: string
 	previousImageUrl?: string
 }
-export type BadgeData = Badge & Theme & { lastChecked: number }
+export type BadgeData = Badge & Theme & { awardHistory: [number, number][] }
 export type GameData = Universe &
 	Theme & { lastChecked: number; existingBadges: number[] }
 interface Stored {

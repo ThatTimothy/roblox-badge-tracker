@@ -98,7 +98,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 					...badge,
 					imageUrl,
 					color,
-					lastChecked: Date.now(),
+					awardHistory: [[Date.now(), badge.statistics.awardedCount]],
 				}
 			}
 		}
@@ -145,10 +145,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		const color = await getImageColor(imageUrl)
 
 		stored.trackingBadges[id] = {
+			...badge,
 			imageUrl,
 			color: color,
-			lastChecked: Date.now(),
-			...badge,
+			awardHistory: [[Date.now(), badge.statistics.awardedCount]],
 		}
 
 		interaction.editReply({

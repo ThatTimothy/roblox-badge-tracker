@@ -71,7 +71,7 @@ export function createBadgeEmbed(badgeData: BadgeData, updated?: Badge) {
 					updatedCount !== undefined && updatedCount != previousCount
 						? `${previousCount.toLocaleString()} → ${updatedCount.toLocaleString()}` +
 							` (+${(updatedCount - previousCount).toLocaleString()})` +
-							` since ${time(Math.round(badgeData.lastChecked / 1000), TimestampStyles.RelativeTime)}`
+							` since ${time(Math.round(badgeData.awardHistory[badgeData.awardHistory.length - 2][0] / 1000), TimestampStyles.RelativeTime)}`
 						: previousCount.toLocaleString(),
 			},
 		])

@@ -72,7 +72,7 @@ async function checkNewGameBadges(client: Client, id: number) {
 				...badge,
 				imageUrl,
 				color,
-				lastChecked: Date.now(),
+				awardHistory: [[Date.now(), badge.statistics.awardedCount]],
 			}
 		}
 
@@ -261,10 +261,6 @@ async function fetchBadge(client: Client, id: number, imageUrl: string) {
 	if (!previous) {
 		return
 	}
-	stored.trackingBadges[id] = {
-		...stored.trackingBadges[id],
-		lastChecked: Date.now(),
-	}
 
 	const embeds = []
 	const result = getUpdates(previous, badge, BADGE_TRACKING_PROPERTIES)
@@ -315,6 +311,13 @@ async function fetchBadge(client: Client, id: number, imageUrl: string) {
 	}
 
 	if (badge.statistics.awardedCount > previous.statistics.awardedCount) {
+		stored.trackingBadges[id] = {
+			...stored.trackingBadges[id],
+			awardHistory: [
+				...stored.trackingBadges[id].awardHistory,
+				[Date.now(), badge.statistics.awardedCount],
+			],
+		}
 		logger.logBadge(
 			`Updated award count for ${id} - ${previous.statistics.awardedCount} -> ${badge.statistics.awardedCount}`
 		)
