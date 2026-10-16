@@ -1,4 +1,4 @@
-import { Client, SendableChannels, time, TimestampStyles } from "discord.js"
+import { Client, time, TimestampStyles } from "discord.js"
 import API, { Badge, Universe } from "./api"
 import { getImageColor } from "./color"
 import { getStored } from "./store"
@@ -9,7 +9,7 @@ import {
 	createGameUpdateEmbed,
 	createSuccessEmbed,
 } from "./embeds"
-import logger from "./log"
+import logger, { getLogChannel } from "./log"
 import { sleep } from "./sleep"
 import Config from "./config"
 
@@ -35,17 +35,6 @@ const BADGE_TRACKING_PROPERTIES: (keyof Badge)[] = [
 	"created",
 	"updated",
 ]
-
-async function getLogChannel(
-	client: Client
-): Promise<SendableChannels | undefined> {
-	const stored = await getStored()
-	if (!stored.logChannel) return
-	const channel = await client.channels.fetch(stored.logChannel)
-	if (!channel) return
-	if (!channel.isSendable()) return
-	return channel
-}
 
 async function checkNewGameBadges(client: Client, id: number) {
 	const stored = await getStored()

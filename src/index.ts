@@ -1,12 +1,14 @@
-import { Client, Events, MessageFlags } from "discord.js"
+import { Client, Events, MessageFlags, time, TimestampStyles } from "discord.js"
 import Config from "./util/config"
 import { getStored, store } from "./util/store"
 import { readCommands } from "./util/commands"
 import { trackBadges, trackGames } from "./util/track"
 import API from "./util/api"
-import logger from "./util/log"
+import logger, { getLogChannel } from "./util/log"
 import { readButtons } from "./util/buttons"
 import { sleep } from "./util/sleep"
+import { createFailEmbed, createSuccessEmbed } from "./util/embeds"
+import { stdout } from "process"
 
 const client = new Client({
 	intents: [],
@@ -56,7 +58,37 @@ client.once(Events.ClientReady, async (readyClient) => {
 	)
 
 	const stored = await getStored()
-	stored.lastLogin = Date.now()
+	const logIn = Date.now()
+	logger.log(`Last logout: ${stored.lastLogout}, now ${logIn}`)
+
+	const logChannel = await getLogChannel(client)
+	if (logChannel) {
+		const fields = []
+		if (stored.lastLogout) {
+			fields.push({
+				name: "Logged Out",
+				value: time(
+					new Date(stored.lastLogout),
+					TimestampStyles.RelativeTime
+				),
+			})
+		}
+		fields.push({
+			name: "Logged In",
+			value: time(new Date(logIn), TimestampStyles.RelativeTime),
+		})
+		await logChannel.send({
+			embeds: [
+				createSuccessEmbed(
+					"Bot Started",
+					stored.lastLogout
+						? "Resuming from last log out"
+						: "Starting fresh!",
+					fields
+				),
+			],
+		})
+	}
 
 	setInterval(store, Config.STORE_INTERVAL_MS)
 
@@ -65,7 +97,36 @@ client.once(Events.ClientReady, async (readyClient) => {
 		if (!running) return
 		running = false
 
+		logger.error("Shutting down...")
+
+		stored.lastLogout = Date.now()
 		await store()
+
+		const logChannel = await getLogChannel(client)
+		if (logChannel) {
+			await logChannel.send({
+				embeds: [
+					createFailEmbed(
+						"Bot Stopped",
+						"Will resume tracking when started again",
+						{
+							name: "Logged Out",
+							value: time(
+								new Date(stored.lastLogout),
+								TimestampStyles.RelativeTime
+							),
+						}
+					),
+				],
+			})
+		}
+
+		await client.destroy()
+
+		logger.success("Logged out, stopping...")
+
+		// Write len 0 to force flush
+		await new Promise<void>((res) => process.stdout.write("", () => res()))
 
 		process.exit(0)
 	}

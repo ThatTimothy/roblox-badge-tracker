@@ -13,7 +13,7 @@ export type BadgeData = Badge & Theme & { awardHistory: [number, number][] }
 export type GameData = Universe &
 	Theme & { lastChecked: number; existingBadges: number[] }
 interface Stored {
-	lastLogin?: number
+	lastLogout?: number
 	logChannel?: string
 	trackingGames: Record<number, GameData>
 	trackingBadges: Record<number, BadgeData>

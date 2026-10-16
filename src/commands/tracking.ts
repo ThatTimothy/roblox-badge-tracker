@@ -6,7 +6,7 @@ import {
 import { getStored } from "../util/store"
 import {
 	createBadgeEmbed,
-	createErrorEmbed as createFailEmbed,
+	createFailEmbed,
 	createGameEmbed,
 } from "../util/embeds"
 

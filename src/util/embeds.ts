@@ -1,8 +1,10 @@
 import {
 	APIEmbed,
+	APIEmbedField,
 	ChatInputCommandInteraction,
 	EmbedBuilder,
 	JSONEncodable,
+	RestOrArray,
 	time,
 } from "discord.js"
 import { BadgeData, GameData } from "./store"
@@ -98,18 +100,28 @@ export function createBadgeUpdateEmbed(
 		)
 }
 
-export function createSuccessEmbed(title: string, description: string) {
+export function createSuccessEmbed(
+	title: string,
+	description: string,
+	...fields: RestOrArray<APIEmbedField>
+) {
 	return new EmbedBuilder()
 		.setTitle(title)
 		.setDescription(description)
 		.setColor("Green")
+		.addFields(...fields)
 }
 
-export function createErrorEmbed(title: string, description: string) {
+export function createFailEmbed(
+	title: string,
+	description: string,
+	...fields: RestOrArray<APIEmbedField>
+) {
 	return new EmbedBuilder()
 		.setTitle(title)
 		.setDescription(description)
 		.setColor("Red")
+		.addFields(...fields)
 }
 
 type Embeds = (APIEmbed | JSONEncodable<APIEmbed>)[]
