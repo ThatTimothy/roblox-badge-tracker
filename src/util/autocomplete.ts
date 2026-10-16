@@ -7,7 +7,7 @@ export async function autocompleteGame(search: string) {
 		stored.trackingGames
 	).map((game) => ({
 		name: game.name,
-		value: game.rootPlaceId.toString(),
+		value: `https://roblox.com/games/${game.rootPlaceId}`,
 	}))
 
 	const top25 = choices
