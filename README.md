@@ -41,6 +41,12 @@ node out/index.js
 
 and you should see the bot come online!
 
+## Stopping
+
+To stop, you can do `Ctrl+C`, `Ctrl+D`, or `q`. Before stopping, data will be saved. On the next start, tracking will resume from the saved state.
+
+Saves happen automatically every 5 minutes, but you can use `s` to manually save.
+
 # Usage
 
 ## `/log-channel`

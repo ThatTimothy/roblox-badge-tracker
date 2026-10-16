@@ -168,6 +168,8 @@ client.once(Events.ClientReady, async (readyClient) => {
 		running = false
 
 		logger.error("Shutting down...")
+		process.stdin.setRawMode(false)
+		process.stdin.pause()
 
 		// Wait for track loop to finish
 		await trackLoopPromise
@@ -204,6 +206,22 @@ client.once(Events.ClientReady, async (readyClient) => {
 	process.once("SIGINT", shutdown)
 	process.once("SIGTERM", shutdown)
 	process.once("SIGQUIT", shutdown)
+
+	// Shortcuts
+	if (process.stdin.isTTY) {
+		process.stdin.setRawMode(true)
+		process.stdin.setEncoding("utf-8")
+		process.stdin.resume()
+		process.stdin.on("data", (key) => {
+			// Ctrl+C or Ctrl+D or q for shutdown
+			if (key === "\u0003" || key === "\u0004" || key === "q") {
+				shutdown()
+			} else if (key == "s") {
+				// s for save
+				store()
+			}
+		})
+	}
 })
 
 client.login(Config.BOT_TOKEN)
