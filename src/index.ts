@@ -8,31 +8,34 @@ import logger, { getLogChannel } from "./util/log"
 import { readButtons } from "./util/buttons"
 import { sleep } from "./util/sleep"
 import { createFailEmbed, createSuccessEmbed } from "./util/embeds"
-import { stdout } from "process"
 
 const client = new Client({
 	intents: [],
 })
 
+let running = true
+
 async function track() {
 	async function trackGamesLoop() {
 		const start = Date.now()
 		await trackGames(client)
-		await sleep(Config.GAME_LOOP_INTERVAL_MS - (Date.now() - start))
+		if (running)
+			await sleep(Config.GAME_LOOP_INTERVAL_MS - (Date.now() - start))
 	}
 	async function trackBadgesLoop() {
 		const start = Date.now()
 		await trackBadges(client)
-		await sleep(Config.BADGE_LOOP_INTERVAL_MS - (Date.now() - start))
+		if (running)
+			await sleep(Config.BADGE_LOOP_INTERVAL_MS - (Date.now() - start))
 	}
 
-	try {
-		await Promise.allSettled([trackGamesLoop(), trackBadgesLoop()])
-	} catch (e) {
-		logger.error(e)
+	while (running) {
+		try {
+			await Promise.allSettled([trackGamesLoop(), trackBadgesLoop()])
+		} catch (e) {
+			logger.error(e)
+		}
 	}
-
-	setTimeout(track)
 }
 
 client.once(Events.ClientReady, async (readyClient) => {
@@ -91,49 +94,6 @@ client.once(Events.ClientReady, async (readyClient) => {
 	}
 
 	setInterval(store, Config.STORE_INTERVAL_MS)
-
-	let running = true
-	async function shutdown() {
-		if (!running) return
-		running = false
-
-		logger.error("Shutting down...")
-
-		stored.lastLogout = Date.now()
-		await store()
-
-		const logChannel = await getLogChannel(client)
-		if (logChannel) {
-			await logChannel.send({
-				embeds: [
-					createFailEmbed(
-						"Bot Stopped",
-						"Will resume tracking when started again",
-						{
-							name: "Logged Out",
-							value: time(
-								new Date(stored.lastLogout),
-								TimestampStyles.RelativeTime
-							),
-						}
-					),
-				],
-			})
-		}
-
-		await client.destroy()
-
-		logger.success("Logged out, stopping...")
-
-		// Write len 0 to force flush
-		await new Promise<void>((res) => process.stdout.write("", () => res()))
-
-		process.exit(0)
-	}
-
-	process.once("SIGINT", shutdown)
-	process.once("SIGTERM", shutdown)
-	process.once("SIGQUIT", shutdown)
 
 	const commands = await readCommands()
 	const buttons = await readButtons()
@@ -200,7 +160,50 @@ client.once(Events.ClientReady, async (readyClient) => {
 	logger.success("Setup complete!")
 
 	// Tracking
-	track()
+	const trackLoopPromise = track()
+
+	// Shutdown handling
+	async function shutdown() {
+		if (!running) return
+		running = false
+
+		logger.error("Shutting down...")
+
+		// Wait for track loop to finish
+		await trackLoopPromise
+		logger.success("Track loop finished")
+
+		stored.lastLogout = Date.now()
+		await store()
+
+		logger.success("Logging out, stopping...")
+		const logChannel = await getLogChannel(client)
+		if (logChannel) {
+			await logChannel.send({
+				embeds: [
+					createFailEmbed(
+						"Bot Stopped",
+						"Will resume tracking when started again",
+						{
+							name: "Logged Out",
+							value: time(
+								new Date(stored.lastLogout),
+								TimestampStyles.RelativeTime
+							),
+						}
+					),
+				],
+			})
+		}
+
+		await client.destroy()
+
+		process.exit(0)
+	}
+
+	process.once("SIGINT", shutdown)
+	process.once("SIGTERM", shutdown)
+	process.once("SIGQUIT", shutdown)
 })
 
 client.login(Config.BOT_TOKEN)
