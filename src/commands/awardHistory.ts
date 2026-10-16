@@ -1,5 +1,4 @@
 import {
-	ApplicationCommandOptionChoiceData,
 	AttachmentBuilder,
 	AutocompleteInteraction,
 	ChatInputCommandInteraction,
@@ -19,6 +18,7 @@ import {
 	Title,
 } from "chart.js"
 import { getHexColor } from "../util/color"
+import { autocompleteBadge } from "../util/autocomplete"
 
 Chart.register(
 	CategoryScale,
@@ -185,20 +185,5 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 export async function autocomplete(interaction: AutocompleteInteraction) {
 	const search = interaction.options.getFocused()
-	const stored = await getStored()
-	const choices: ApplicationCommandOptionChoiceData[] = Object.values(
-		stored.trackingBadges
-	).map((badge) => ({
-		name: badge.name,
-		value: badge.id.toString(),
-	}))
-
-	const top25 = choices
-		.sort((a, b) => a.name.localeCompare(b.name))
-		.filter((choice) =>
-			choice.name.toLowerCase().includes(search.toLowerCase())
-		)
-		.slice(0, 25)
-
-	interaction.respond(top25)
+	interaction.respond(await autocompleteBadge(search))
 }

@@ -1,6 +1,5 @@
 import {
 	ActionRowBuilder,
-	ApplicationCommandOptionChoiceData,
 	AutocompleteInteraction,
 	ButtonBuilder,
 	ButtonInteraction,
@@ -11,6 +10,7 @@ import {
 } from "discord.js"
 import { getStored } from "../util/store"
 import { createSuccessEmbed } from "../util/embeds"
+import { autocompleteBadge, autocompleteGame } from "../util/autocomplete"
 
 export const data = new SlashCommandBuilder()
 	.setName("untrack")
@@ -127,38 +127,8 @@ export async function autocomplete(interaction: AutocompleteInteraction) {
 	const search = interaction.options.getFocused()
 	const subcommand = interaction.options.getSubcommand()
 	if (subcommand === "game") {
-		const stored = await getStored()
-		const choices: ApplicationCommandOptionChoiceData[] = Object.values(
-			stored.trackingGames
-		).map((game) => ({
-			name: game.name,
-			value: game.rootPlaceId.toString(),
-		}))
-
-		const top25 = choices
-			.sort((a, b) => a.name.localeCompare(b.name))
-			.filter((choice) =>
-				choice.name.toLowerCase().includes(search.toLowerCase())
-			)
-			.slice(0, 25)
-
-		interaction.respond(top25)
+		interaction.respond(await autocompleteGame(search))
 	} else {
-		const stored = await getStored()
-		const choices: ApplicationCommandOptionChoiceData[] = Object.values(
-			stored.trackingBadges
-		).map((badge) => ({
-			name: badge.name,
-			value: badge.id.toString(),
-		}))
-
-		const top25 = choices
-			.sort((a, b) => a.name.localeCompare(b.name))
-			.filter((choice) =>
-				choice.name.toLowerCase().includes(search.toLowerCase())
-			)
-			.slice(0, 25)
-
-		interaction.respond(top25)
+		interaction.respond(await autocompleteBadge(search))
 	}
 }
