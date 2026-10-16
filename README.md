@@ -36,7 +36,7 @@ To run, simply do
 
 ```sh
 npm run build
-npm start
+node out/index.js
 ```
 
 and you should see the bot come online!
