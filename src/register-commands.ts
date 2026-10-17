@@ -1,4 +1,4 @@
-import { readCommands } from "./util/commands"
+import { readCommands } from "./util/parser"
 import Config from "./util/config"
 import { REST, Routes } from "discord.js"
 

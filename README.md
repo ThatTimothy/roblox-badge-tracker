@@ -49,9 +49,11 @@ Saves happen automatically every 5 minutes, but you can use `s` to manually save
 
 # Usage
 
-## `/log-channel`
+## `/setup`
 
-Sets the channel to log updates to.
+Set up the configuration for the bot.
+Running without any arguments (`/setup`) will launch an interactive menu which walks through each setting - this is recommended for first setup.
+If you want to quickly update one of the configurations without going through each setting, you can use the optional arguments - for example: `/setup log-channel:#log`
 
 **Make sure you set this or no updates will be logged!**
 

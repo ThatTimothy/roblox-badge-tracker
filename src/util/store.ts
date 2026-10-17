@@ -3,6 +3,7 @@ import Config from "../util/config"
 import { Badge, Universe } from "./api"
 import logger from "./log"
 import { RGB } from "./color"
+import { Snowflake } from "discord.js"
 
 interface Theme {
 	color: RGB
@@ -12,9 +13,20 @@ interface Theme {
 export type BadgeData = Badge & Theme & { awardHistory: [number, number][] }
 export type GameData = Universe &
 	Theme & { lastChecked: number; existingBadges: number[] }
-interface Stored {
+export type StoredNotification = {
+	users: Snowflake[]
+	roles: Snowflake[]
+}
+export interface Stored {
 	lastLogout?: number
-	logChannel?: string
+	channels: {
+		logChannel?: Snowflake
+	}
+	notifications: {
+		firstAward?: StoredNotification
+		update?: StoredNotification
+		newBadge?: StoredNotification
+	}
 	trackingGames: Record<number, GameData>
 	trackingBadges: Record<number, BadgeData>
 }
@@ -28,6 +40,8 @@ async function retrieve(): Promise<Stored> {
 	} catch (e) {
 		if (e && typeof e === "object" && "code" in e && e.code === "ENOENT") {
 			return {
+				channels: {},
+				notifications: {},
 				trackingGames: {},
 				trackingBadges: {},
 			}

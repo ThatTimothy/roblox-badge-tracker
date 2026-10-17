@@ -36,8 +36,8 @@ export async function getLogChannel(
 	client: Client
 ): Promise<SendableChannels | undefined> {
 	const stored = await getStored()
-	if (!stored.logChannel) return
-	const channel = await client.channels.fetch(stored.logChannel)
+	if (!stored.channels.logChannel) return
+	const channel = await client.channels.fetch(stored.channels.logChannel)
 	if (!channel) return
 	if (!channel.isSendable()) return
 	return channel

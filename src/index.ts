@@ -1,11 +1,10 @@
 import { Client, Events, MessageFlags, time, TimestampStyles } from "discord.js"
 import Config from "./util/config"
 import { getStored, store } from "./util/store"
-import { readCommands } from "./util/commands"
+import { readButtons, readCommands, readSelects } from "./util/parser"
 import { trackBadges, trackGames } from "./util/track"
 import API from "./util/api"
 import logger, { getLogChannel } from "./util/log"
-import { readButtons } from "./util/buttons"
 import { sleep } from "./util/sleep"
 import { createFailEmbed, createSuccessEmbed } from "./util/embeds"
 
@@ -97,6 +96,7 @@ client.once(Events.ClientReady, async (readyClient) => {
 
 	const commands = await readCommands()
 	const buttons = await readButtons()
+	const selects = await readSelects()
 	readyClient.on(Events.InteractionCreate, async (interaction) => {
 		if (interaction.isChatInputCommand()) {
 			const command = commands[interaction.commandName]
@@ -151,6 +151,19 @@ client.once(Events.ClientReady, async (readyClient) => {
 
 			try {
 				await button.execute(interaction)
+			} catch (error) {
+				logger.error(error)
+			}
+		} else if (interaction.isAnySelectMenu()) {
+			const base = interaction.customId.split(":")[0]
+			const select = selects[base]
+			if (!select) {
+				logger.error(`No select matching ${base} was found.`)
+				return
+			}
+
+			try {
+				await select.execute(interaction)
 			} catch (error) {
 				logger.error(error)
 			}
