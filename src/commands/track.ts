@@ -139,7 +139,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			return await interaction.editReply("Already tracking that badge!")
 		}
 
-		const badge = await API.getBadge(id)
+		const badge = await API.getBadge(id).catch(async () => {
+			await interaction.editReply("Invalid link!")
+		})
+		if (!badge) {
+			return
+		}
 		const icons = await API.getBadgeIcons([id])
 		const imageUrl = icons[id]
 		const color = await getImageColor(imageUrl)
