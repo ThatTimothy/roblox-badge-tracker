@@ -18,7 +18,7 @@ import {
 	SlashCommandMentionableOption,
 	userMention,
 } from "discord.js"
-import { getStored, Stored } from "../util/store"
+import { getStored, Stored, StoredNotification } from "../util/store"
 
 const BASE_CONFIG_MENU =
 	"# Configuration\nThe dropdowns below will instantly update the configuration\n"
@@ -33,7 +33,7 @@ export const configuration: ({
 			type: "channel"
 	  }
 	| {
-			configKey: keyof Stored["notifications"]
+			configKey: StoredNotification
 			type: "mentionable"
 	  }
 ))[] = [
@@ -181,12 +181,15 @@ export async function getMessage(
 				} else if (config.type === "mentionable") {
 					const storedNotification =
 						stored.notifications[config.configKey]
-					value = storedNotification
-						? [
-								...storedNotification.users.map(userMention),
-								...storedNotification.roles.map(roleMention),
-							].join(" ")
-						: inlineCode("Unset")
+					const mentions =
+						storedNotification &&
+						(storedNotification.users ||
+							storedNotification.roles) &&
+						[
+							...storedNotification.users.map(userMention),
+							...storedNotification.roles.map(roleMention),
+						].join(" ")
+					value = mentions || inlineCode("Unset")
 				}
 				return `## ${config.name}\n${config.description}\n${value}`
 			})

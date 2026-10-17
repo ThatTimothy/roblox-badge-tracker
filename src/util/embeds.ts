@@ -1,13 +1,16 @@
 import {
 	APIEmbed,
 	APIEmbedField,
+	BaseMessageOptionsWithPoll,
 	ChatInputCommandInteraction,
 	EmbedBuilder,
 	JSONEncodable,
 	RestOrArray,
+	roleMention,
 	time,
+	userMention,
 } from "discord.js"
-import { BadgeData, GameData } from "./store"
+import { BadgeData, GameData, getStored, StoredNotification } from "./store"
 import { Badge } from "./api"
 import { TimestampStyles } from "discord.js"
 
@@ -54,7 +57,11 @@ export function createGameUpdateEmbed(
 		)
 }
 
-export function createBadgeEmbed(badgeData: BadgeData, updated?: Badge) {
+export function createBadgeEmbed(
+	badgeData: BadgeData,
+	updated?: Badge,
+	firstAward?: boolean
+) {
 	const previousCount = badgeData.statistics.awardedCount
 	const updatedCount = updated?.statistics.awardedCount
 	const awardingUniverse = (updated || badgeData).awardingUniverse
@@ -73,7 +80,8 @@ export function createBadgeEmbed(badgeData: BadgeData, updated?: Badge) {
 					updatedCount !== undefined && updatedCount != previousCount
 						? `${previousCount.toLocaleString()} → ${updatedCount.toLocaleString()}` +
 							` (+${(updatedCount - previousCount).toLocaleString()})` +
-							` since ${time(Math.round(badgeData.awardHistory[badgeData.awardHistory.length - 2][0] / 1000), TimestampStyles.RelativeTime)}`
+							(firstAward ? ` __**(First!)**__` : "") +
+							` since ${time(Math.round(badgeData.awardHistory[badgeData.awardHistory.length - 1][0] / 1000), TimestampStyles.RelativeTime)}`
 						: previousCount.toLocaleString(),
 			},
 		])
@@ -124,27 +132,56 @@ export function createFailEmbed(
 		.addFields(...fields)
 }
 
+// Gets the content to mention users & roles for a specific set of notifications
+export async function getNotificationContent(
+	notifications: StoredNotification[]
+) {
+	const stored = await getStored()
+	const mentions = []
+	for (const notification of notifications) {
+		const storedNotification = stored.notifications[notification]
+		if (storedNotification) {
+			mentions.push(...storedNotification.users.map(userMention))
+			mentions.push(...storedNotification.roles.map(roleMention))
+		}
+	}
+
+	if (mentions.length > 0) {
+		return mentions.join(" ")
+	}
+}
+
 type Embeds = (APIEmbed | JSONEncodable<APIEmbed>)[]
 export async function batchEmbedReply(
 	interaction:
-		ChatInputCommandInteraction | ((embeds: Embeds) => Promise<unknown>),
-	allEmbeds: Embeds
+		| ChatInputCommandInteraction
+		| ((message: BaseMessageOptionsWithPoll) => Promise<unknown>),
+	allEmbeds: Embeds,
+	notifications?: StoredNotification[]
 ) {
 	for (let i = 0; i < allEmbeds.length; i += 10) {
+		const content =
+			notifications && i == 0
+				? await getNotificationContent(notifications)
+				: undefined
 		const embeds = allEmbeds.slice(i, i + 10)
+		const message = {
+			content,
+			embeds,
+		}
 
 		if (typeof interaction === "function") {
-			return await interaction(embeds)
+			return await interaction(message)
 		}
 
 		if (!interaction.replied) {
 			if (interaction.deferred) {
-				await interaction.editReply({ embeds })
+				await interaction.editReply(message)
 			} else {
-				await interaction.reply({ embeds })
+				await interaction.reply(message)
 			}
 		} else {
-			await interaction.followUp({ embeds })
+			await interaction.followUp(message)
 		}
 	}
 }

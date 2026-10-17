@@ -1,7 +1,7 @@
 import { Client, time, TimestampStyles } from "discord.js"
 import API, { Badge, Universe } from "./api"
 import { getImageColor } from "./color"
-import { getStored } from "./store"
+import { getStored, StoredNotification } from "./store"
 import {
 	batchEmbedReply,
 	createBadgeEmbed,
@@ -81,7 +81,7 @@ async function checkNewGameBadges(client: Client, id: number) {
 
 		const channel = await getLogChannel(client)
 		if (channel) {
-			batchEmbedReply((embeds) => channel.send({ embeds }), embeds)
+			batchEmbedReply((message) => channel.send(message), embeds)
 			logger.logGame(`Logged new badges for ${id}`)
 		}
 	} else {
@@ -219,7 +219,7 @@ export async function trackGames(client: Client) {
 	if (embeds.length > 0) {
 		const channel = await getLogChannel(client)
 		if (channel) {
-			batchEmbedReply((embeds) => channel.send({ embeds }), embeds)
+			batchEmbedReply((message) => channel.send(message), embeds)
 			logger.logGame("Logged updates for games")
 		}
 	} else {
@@ -252,6 +252,7 @@ async function fetchBadge(client: Client, id: number, imageUrl: string) {
 	}
 
 	const embeds = []
+	const notifications: StoredNotification[] = []
 	const result = getUpdates(previous, badge, BADGE_TRACKING_PROPERTIES)
 	if (result) {
 		stored.trackingBadges[id] = {
@@ -307,16 +308,24 @@ async function fetchBadge(client: Client, id: number, imageUrl: string) {
 				[Date.now(), badge.statistics.awardedCount],
 			],
 		}
+		const firstAward = stored.trackingBadges[id].awardHistory.length <= 2
+		if (firstAward) {
+			notifications.push("firstAward")
+		}
 		logger.logBadge(
 			`Updated award count for ${id} - ${previous.statistics.awardedCount} -> ${badge.statistics.awardedCount}`
 		)
-		embeds.push(createBadgeEmbed(previous, badge))
+		embeds.push(createBadgeEmbed(previous, badge, firstAward))
 	}
 
 	if (embeds.length > 0) {
 		const channel = await getLogChannel(client)
 		if (channel) {
-			batchEmbedReply((embeds) => channel.send({ embeds }), embeds)
+			batchEmbedReply(
+				(message) => channel.send(message),
+				embeds,
+				notifications
+			)
 			logger.logBadge(`Logged ${id}`)
 		}
 	} else {

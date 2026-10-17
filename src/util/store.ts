@@ -13,19 +13,20 @@ interface Theme {
 export type BadgeData = Badge & Theme & { awardHistory: [number, number][] }
 export type GameData = Universe &
 	Theme & { lastChecked: number; existingBadges: number[] }
-export type StoredNotification = {
+export type StoredNotificationList = {
 	users: Snowflake[]
 	roles: Snowflake[]
 }
+export type StoredNotification = keyof Stored["notifications"]
 export interface Stored {
 	lastLogout?: number
 	channels: {
 		logChannel?: Snowflake
 	}
 	notifications: {
-		firstAward?: StoredNotification
-		update?: StoredNotification
-		newBadge?: StoredNotification
+		firstAward?: StoredNotificationList
+		update?: StoredNotificationList
+		newBadge?: StoredNotificationList
 	}
 	trackingGames: Record<number, GameData>
 	trackingBadges: Record<number, BadgeData>
