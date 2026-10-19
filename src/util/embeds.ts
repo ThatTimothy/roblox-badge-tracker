@@ -96,7 +96,8 @@ export function createBadgeUpdateEmbed(
 		.setTitle(badgeData.name)
 		.setURL(`https://roblox.com/badges/${badgeData.id}`)
 		.setDescription(
-			`was updated ${currUpdated ? time(currUpdated, TimestampStyles.RelativeTime) : ""}`
+			`in [**${badgeData.awardingUniverse.name}**](https://roblox.com/games/${badgeData.awardingUniverse.rootPlaceId})` +
+				` was updated ${currUpdated ? time(currUpdated, TimestampStyles.RelativeTime) : ""}`
 		)
 		.setThumbnail(badgeData.imageUrl)
 		.setColor(badgeData.color)
