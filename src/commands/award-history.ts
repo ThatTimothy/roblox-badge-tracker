@@ -159,11 +159,11 @@ export async function renderChartToAttachment(badges: BadgeData[]) {
 	chart.destroy()
 
 	return new AttachmentBuilder(pngBuffer).setName(
-		`${new Date()}${badges.length === 1 ? `-${badges[0].id}` : ""}-award-history.png`
+		`${new Date().toString()}${badges.length === 1 ? `-${badges[0].id}` : ""}-award-history.png`
 	)
 }
 
-export async function buildComponents(
+export function buildComponents(
 	badges: BadgeData[],
 	selected: Set<number>,
 	all: boolean
@@ -242,12 +242,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	const attachment = await renderChartToAttachment(
 		badges.filter((badge) => selected.has(badge.id))
 	)
-	const components = await buildComponents(badges, selected, link === null)
+	const components = buildComponents(badges, selected, link === null)
 
 	await interaction.editReply({ components, files: [attachment] })
 }
 
 export async function autocomplete(interaction: AutocompleteInteraction) {
 	const search = interaction.options.getFocused()
-	interaction.respond(await autocompleteBadge(search, badgeHasHistory))
+	await interaction.respond(await autocompleteBadge(search, badgeHasHistory))
 }

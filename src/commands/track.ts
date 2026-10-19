@@ -122,7 +122,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			),
 		]
 
-		batchEmbedReply(interaction, embeds)
+		await batchEmbedReply(interaction, embeds)
 	} else {
 		const link = interaction.options.getString("link", true)
 		const match = link.match(/(\d+)/)
@@ -156,7 +156,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			awardHistory: [[Date.now(), badge.statistics.awardedCount]],
 		}
 
-		interaction.editReply({
+		await interaction.editReply({
 			content: "Now tracking:",
 			embeds: [createBadgeEmbed(stored.trackingBadges[id])],
 		})

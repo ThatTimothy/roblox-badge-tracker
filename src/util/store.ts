@@ -37,7 +37,7 @@ let loaded: Stored | null = null
 async function retrieve(): Promise<Stored> {
 	try {
 		const file = await readFile(Config.STORE_FILE)
-		return JSON.parse(file.toString())
+		return JSON.parse(file.toString()) as Stored
 	} catch (e) {
 		if (e && typeof e === "object" && "code" in e && e.code === "ENOENT") {
 			return {

@@ -4,27 +4,27 @@ import { format, styleText } from "util"
 import { getStored } from "./store"
 
 class Logger {
-	log(...args: unknown[]) {
+	log(this: void, ...args: unknown[]) {
 		console.log(...args)
 	}
 
-	success(...args: unknown[]) {
+	success(this: void, ...args: unknown[]) {
 		console.log(styleText("green", format(...args)))
 	}
 
-	warn(...args: unknown[]) {
+	warn(this: void, ...args: unknown[]) {
 		console.log(styleText("yellow", format(...args)))
 	}
 
-	error(...args: unknown[]) {
+	error(this: void, ...args: unknown[]) {
 		console.error(styleText("red", format(...args), { stream: stderr }))
 	}
 
-	logGame(...args: unknown[]) {
+	logGame(this: void, ...args: unknown[]) {
 		console.log(styleText("magenta", "Game  | " + format(...args)))
 	}
 
-	logBadge(...args: unknown[]) {
+	logBadge(this: void, ...args: unknown[]) {
 		console.log(styleText("cyanBright", "Badge | " + format(...args)))
 	}
 }

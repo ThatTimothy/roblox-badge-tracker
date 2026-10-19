@@ -59,7 +59,7 @@ export async function untrackGame(
 	delete stored.trackingGames[trackingGame.id]
 	badges.forEach((badge) => delete stored.trackingBadges[badge.id])
 
-	interaction.reply({
+	await interaction.reply({
 		embeds: [
 			createSuccessEmbed(
 				`Stopped Tracking ${trackingGame.name}`,
@@ -111,7 +111,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		)
 		const components = showUntrackButton ? [row] : undefined
 
-		interaction.reply({
+		await interaction.reply({
 			embeds: [
 				createSuccessEmbed(
 					`Stopped Tracking ${badge.name}`,
@@ -127,8 +127,8 @@ export async function autocomplete(interaction: AutocompleteInteraction) {
 	const search = interaction.options.getFocused()
 	const subcommand = interaction.options.getSubcommand()
 	if (subcommand === "game") {
-		interaction.respond(await autocompleteGame(search))
+		await interaction.respond(await autocompleteGame(search))
 	} else {
-		interaction.respond(await autocompleteBadge(search))
+		await interaction.respond(await autocompleteBadge(search))
 	}
 }

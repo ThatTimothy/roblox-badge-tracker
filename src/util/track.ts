@@ -82,11 +82,12 @@ async function checkNewGameBadges(client: Client, id: number) {
 
 		const channel = await getLogChannel(client)
 		if (channel) {
+			// Send in background
 			batchEmbedReply(
 				(message) => channel.send(message),
 				embeds,
 				notifications
-			)
+			).catch(logger.error)
 			logger.logGame(`Logged new badges for ${id}`)
 		}
 	} else {
@@ -233,11 +234,12 @@ export async function trackGames(client: Client) {
 	if (embeds.length > 0) {
 		const channel = await getLogChannel(client)
 		if (channel) {
+			// Send in background
 			batchEmbedReply(
 				(message) => channel.send(message),
 				embeds,
 				notifications
-			)
+			).catch(logger.error)
 			logger.logGame("Logged updates for games")
 		}
 	} else {
@@ -340,11 +342,12 @@ async function fetchBadge(client: Client, id: number, imageUrl: string) {
 	if (embeds.length > 0) {
 		const channel = await getLogChannel(client)
 		if (channel) {
+			// Send in background
 			batchEmbedReply(
 				(message) => channel.send(message),
 				embeds,
 				notifications
-			)
+			).catch(logger.error)
 			logger.logBadge(`Logged ${id}`)
 		}
 	} else {

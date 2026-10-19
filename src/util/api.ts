@@ -57,6 +57,17 @@ export interface Badge {
 	}
 }
 
+export class APIError extends Error {
+	constructor(
+		public readonly status: number,
+		public readonly statusText: string,
+		public readonly body?: unknown
+	) {
+		super(`APIError ${status} ${statusText}`)
+		this.name = "APIError"
+	}
+}
+
 class APIClient {
 	private key: string
 	private ratelimitBuckets = new Map<
@@ -74,10 +85,10 @@ class APIClient {
 			body: JSON.stringify({ apiKey: this.key }),
 		})
 
-		return res.json()
+		return (await res.json()) as IntrospectResponse
 	}
 
-	private async request(
+	private async request<T>(
 		key: string,
 		url: string | URL,
 		method: string,
@@ -148,19 +159,23 @@ class APIClient {
 
 			// On any other error, throw it
 			if (!response.ok) {
-				throw response
+				throw new APIError(
+					response.status,
+					response.statusText,
+					await response.json()
+				)
 			}
 
-			return response.json()
+			return (await response.json()) as T
 		}
 	}
 
-	private async get(key: string, url: string | URL) {
-		return this.request(key, url, "GET")
+	private async get<T>(key: string, url: string | URL) {
+		return this.request<T>(key, url, "GET")
 	}
 
-	private async post(key: string, url: string | URL, body: object) {
-		return this.request(key, url, "POST", body)
+	private async post<T>(key: string, url: string | URL, body: object) {
+		return this.request<T>(key, url, "POST", body)
 	}
 
 	// Gets a set of universes from a list of universe ids
@@ -170,7 +185,10 @@ class APIClient {
 		for (const universeId of universeIds) {
 			url.searchParams.append("universeIds", universeId.toString())
 		}
-		const json = await this.get(`${GAMES_API}/v1/games`, url)
+		const json = await this.get<{ data: Universe[] }>(
+			`${GAMES_API}/v1/games`,
+			url
+		)
 		return json["data"]
 	}
 
@@ -179,7 +197,7 @@ class APIClient {
 	async getUniverseIdFromPlaceId(
 		placeId: number
 	): Promise<number | undefined> {
-		const json = await this.get(
+		const json = await this.get<{ universeId: number | undefined }>(
 			"https://apis.roblox.com/universes/v1/places/[placeid]/universe",
 			`https://apis.roblox.com/universes/v1/places/${placeId}/universe`
 		)

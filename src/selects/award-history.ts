@@ -26,7 +26,7 @@ export async function execute(interaction: AnySelectMenuInteraction) {
 	const attachment = await renderChartToAttachment(
 		badges.filter((badge) => selected.has(badge.id))
 	)
-	const components = await buildComponents(badges, selected, all)
+	const components = buildComponents(badges, selected, all)
 
 	await interaction.editReply({
 		components,

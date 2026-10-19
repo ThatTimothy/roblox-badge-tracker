@@ -1,4 +1,12 @@
-import { Client, Events, MessageFlags, time, TimestampStyles } from "discord.js"
+import {
+	CacheType,
+	Client,
+	Events,
+	Interaction,
+	MessageFlags,
+	time,
+	TimestampStyles,
+} from "discord.js"
 import Config from "./util/config"
 import { getStored, store } from "./util/store"
 import { readButtons, readCommands, readSelects } from "./util/parser"
@@ -37,7 +45,7 @@ async function track() {
 	}
 }
 
-client.once(Events.ClientReady, async (readyClient) => {
+async function ready(client: Client<true>) {
 	logger.success("Successfully logged into Discord!")
 
 	const verified = await API.verify()
@@ -92,12 +100,15 @@ client.once(Events.ClientReady, async (readyClient) => {
 		})
 	}
 
-	setInterval(store, Config.STORE_INTERVAL_MS)
+	setInterval(() => {
+		store().catch(logger.error)
+	}, Config.STORE_INTERVAL_MS)
 
 	const commands = await readCommands()
 	const buttons = await readButtons()
 	const selects = await readSelects()
-	readyClient.on(Events.InteractionCreate, async (interaction) => {
+
+	async function handleInteraction(interaction: Interaction<CacheType>) {
 		if (interaction.isChatInputCommand()) {
 			const command = commands[interaction.commandName]
 
@@ -168,6 +179,9 @@ client.once(Events.ClientReady, async (readyClient) => {
 				logger.error(error)
 			}
 		}
+	}
+	client.on(Events.InteractionCreate, (interaction) => {
+		handleInteraction(interaction).catch(logger.error)
 	})
 
 	logger.success("Setup complete!")
@@ -216,9 +230,15 @@ client.once(Events.ClientReady, async (readyClient) => {
 		process.exit(0)
 	}
 
-	process.once("SIGINT", shutdown)
-	process.once("SIGTERM", shutdown)
-	process.once("SIGQUIT", shutdown)
+	process.once("SIGINT", () => {
+		shutdown().catch(logger.error)
+	})
+	process.once("SIGTERM", () => {
+		shutdown().catch(logger.error)
+	})
+	process.once("SIGQUIT", () => {
+		shutdown().catch(logger.error)
+	})
 
 	// Shortcuts
 	if (process.stdin.isTTY) {
@@ -228,13 +248,17 @@ client.once(Events.ClientReady, async (readyClient) => {
 		process.stdin.on("data", (key) => {
 			// Ctrl+C or Ctrl+D or q for shutdown
 			if (key === "\u0003" || key === "\u0004" || key === "q") {
-				shutdown()
+				shutdown().catch(logger.error)
 			} else if (key == "s") {
 				// s for save
-				store()
+				store().catch(logger.error)
 			}
 		})
 	}
+}
+
+client.once(Events.ClientReady, (readyClient) => {
+	ready(readyClient).catch(logger.error)
 })
 
-client.login(Config.BOT_TOKEN)
+client.login(Config.BOT_TOKEN).catch(logger.error)
