@@ -202,6 +202,7 @@ class APIClient {
 	}
 
 	// Iterates pages of badges until all have been fetched
+	// Note: does not include disabled badges
 	// Singular page endpoint has 100/minute ratelimit, so this endpoint uses ceil(badges.length / 100) number of that limit
 	async getBadges(universeId: number): Promise<Badge[]> {
 		const badges = []

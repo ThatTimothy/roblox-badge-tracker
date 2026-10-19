@@ -95,9 +95,14 @@ async function checkNewGameBadges(client: Client, id: number) {
 
 	// Ensure still tracking, then update existing badges for next iteration
 	if (stored.trackingGames[id]) {
-		stored.trackingGames[id].existingBadges = badges.map(
-			(badge) => badge.id
-		)
+		// We use a set to combine existing with retrieved badges - since when a badge is disabled it will cease to appear on game page
+		// However, that does not mean we stopped tracking it as we can still fetch it individually
+		// If we just used badges directly, a disable and re-enabled badge logs as a new badge vs update
+		const newExistingBadges = new Set([
+			...existingBadges,
+			...badges.map((badge) => badge.id),
+		])
+		stored.trackingGames[id].existingBadges = [...newExistingBadges]
 	}
 }
 
