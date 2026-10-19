@@ -132,22 +132,26 @@ export function createFailEmbed(
 		.addFields(...fields)
 }
 
-// Gets the content to mention users & roles for a specific set of notifications
+// Gets the content to mention users & roles (deduplicated) for a specific set of notifications
 export async function getNotificationContent(
 	notifications: StoredNotification[]
 ) {
 	const stored = await getStored()
-	const mentions = []
+	const mentions = new Set<string>()
 	for (const notification of notifications) {
 		const storedNotification = stored.notifications[notification]
 		if (storedNotification) {
-			mentions.push(...storedNotification.users.map(userMention))
-			mentions.push(...storedNotification.roles.map(roleMention))
+			for (const user of storedNotification.users) {
+				mentions.add(userMention(user))
+			}
+			for (const role of storedNotification.roles) {
+				mentions.add(roleMention(role))
+			}
 		}
 	}
 
-	if (mentions.length > 0) {
-		return mentions.join(" ")
+	if (mentions.size > 0) {
+		return [...mentions].join(" ")
 	}
 }
 
