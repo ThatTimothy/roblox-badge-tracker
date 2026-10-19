@@ -1,4 +1,4 @@
-import { Client, time, TimestampStyles } from "discord.js"
+import { Client, EmbedBuilder, time, TimestampStyles } from "discord.js"
 import API, { Badge, Universe } from "./api"
 import { getImageColor } from "./color"
 import { getStored, StoredNotification } from "./store"
@@ -154,7 +154,8 @@ export async function trackGames(client: Client) {
 		universes.map((universe) => universe.id)
 	)
 
-	const embeds = []
+	const embeds: EmbedBuilder[] = []
+	const notifications: StoredNotification[] = []
 	for (const universe of universes) {
 		const imageUrl = icons[universe.id]
 		const previous = stored.trackingGames[universe.id]
@@ -204,6 +205,9 @@ export async function trackGames(client: Client) {
 				}
 
 				// Log & embed
+				if (!notifications.includes("update")) {
+					notifications.push("update")
+				}
 				logger.logGame(`Updated ${universe.id}`)
 				embeds.push(
 					createGameUpdateEmbed(
@@ -219,7 +223,11 @@ export async function trackGames(client: Client) {
 	if (embeds.length > 0) {
 		const channel = await getLogChannel(client)
 		if (channel) {
-			batchEmbedReply((message) => channel.send(message), embeds)
+			batchEmbedReply(
+				(message) => channel.send(message),
+				embeds,
+				notifications
+			)
 			logger.logGame("Logged updates for games")
 		}
 	} else {
@@ -251,7 +259,7 @@ async function fetchBadge(client: Client, id: number, imageUrl: string) {
 		return
 	}
 
-	const embeds = []
+	const embeds: EmbedBuilder[] = []
 	const notifications: StoredNotification[] = []
 	const result = getUpdates(previous, badge, BADGE_TRACKING_PROPERTIES)
 	if (result) {
@@ -289,6 +297,7 @@ async function fetchBadge(client: Client, id: number, imageUrl: string) {
 			}
 
 			// Log & embed
+			notifications.push("update")
 			logger.logBadge(`Updated ${id}`)
 			embeds.push(
 				createBadgeUpdateEmbed(
