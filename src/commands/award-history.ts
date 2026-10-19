@@ -1,8 +1,11 @@
 import {
+	ActionRowBuilder,
 	AttachmentBuilder,
 	AutocompleteInteraction,
 	ChatInputCommandInteraction,
 	SlashCommandBuilder,
+	StringSelectMenuBuilder,
+	StringSelectMenuOptionBuilder,
 } from "discord.js"
 import { BadgeData, getStored } from "../util/store"
 import { Canvas } from "skia-canvas"
@@ -63,8 +66,12 @@ export const data = new SlashCommandBuilder()
 			.setAutocomplete(true)
 	)
 
-async function renderChart(badges: BadgeData[]) {
-	badges = badges.filter((badge) => badge.awardHistory.length >= 2)
+function badgeHasHistory(badge: BadgeData) {
+	return badge.awardHistory.length >= 2
+}
+
+export async function renderChartToAttachment(badges: BadgeData[]) {
+	badges = badges.filter(badgeHasHistory)
 	const minTime = badges.reduce(
 		(prev, curr) => Math.min(curr.awardHistory[0][0], prev),
 		Infinity
@@ -151,13 +158,68 @@ async function renderChart(badges: BadgeData[]) {
 
 	chart.destroy()
 
-	return pngBuffer
+	return new AttachmentBuilder(pngBuffer).setName(
+		`${new Date()}${badges.length === 1 ? `-${badges[0].id}` : ""}-award-history.png`
+	)
+}
+
+export async function buildComponents(
+	badges: BadgeData[],
+	selected: Set<number>,
+	all: boolean
+) {
+	badges = badges.filter(badgeHasHistory)
+	// All, then selected, then anything else we can fit
+	const options = [
+		new StringSelectMenuOptionBuilder()
+			.setValue("all")
+			.setLabel("All Badges")
+			.setDescription("Show all badges")
+			.setDefault(all),
+		...[
+			...badges.filter((badge) => selected.has(badge.id)),
+			...badges.filter((badge) => !selected.has(badge.id)),
+		].map((badge) =>
+			new StringSelectMenuOptionBuilder()
+				.setValue(badge.id.toString())
+				.setLabel(badge.name)
+				.setDescription(`in ${badge.awardingUniverse.name}`)
+				.setDefault(!all && selected.has(badge.id))
+		),
+	].slice(0, 25)
+	// Discord limits dropdowns to 25 options (we can fit 24), so if more than 24 we can't support it
+	if (badges.length > 24) {
+		options.pop()
+		options.push(
+			new StringSelectMenuOptionBuilder()
+				.setValue("-1")
+				.setLabel(
+					"More than 25 tracked badges - only showing first 24 tracked"
+				)
+				.setDescription(
+					"This is a discord limitation - you can always run /award-history to select any specific badge"
+				)
+		)
+	}
+	const selectMenu = new StringSelectMenuBuilder()
+		.setCustomId("award-history")
+		.setPlaceholder("Filter to these badges...")
+		.addOptions(options)
+		.setMinValues(1)
+		.setMaxValues(options.length)
+
+	return [
+		new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+			selectMenu
+		),
+	]
 }
 
 export async function execute(interaction: ChatInputCommandInteraction) {
 	const link = interaction.options.getString("link", false)
 	const stored = await getStored()
-	let badges = Object.values(stored.trackingBadges)
+	const badges = Object.values(stored.trackingBadges)
+	const selected = new Set(badges.map((badge) => badge.id))
 	if (link) {
 		const match = link.match(/(\d+)/)
 
@@ -171,19 +233,21 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			return await interaction.reply("Not tracking that badge!")
 		}
 
-		badges = [badge]
+		selected.clear()
+		selected.add(id)
 	}
 
 	await interaction.deferReply()
 
-	const pngBuffer = await renderChart(badges)
-	const attachment = new AttachmentBuilder(pngBuffer).setName(
-		`${new Date()}${badges.length === 1 ? `-${badges[0].id}` : ""}-award-history.png`
+	const attachment = await renderChartToAttachment(
+		badges.filter((badge) => selected.has(badge.id))
 	)
-	interaction.editReply({ files: [attachment] })
+	const components = await buildComponents(badges, selected, link === null)
+
+	await interaction.editReply({ components, files: [attachment] })
 }
 
 export async function autocomplete(interaction: AutocompleteInteraction) {
 	const search = interaction.options.getFocused()
-	interaction.respond(await autocompleteBadge(search))
+	interaction.respond(await autocompleteBadge(search, badgeHasHistory))
 }
