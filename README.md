@@ -51,11 +51,23 @@ Saves happen automatically every 5 minutes, but you can use `s` to manually save
 
 ## `/setup`
 
-Set up the configuration for the bot.
-Running without any arguments (`/setup`) will launch an interactive menu which walks through each setting - this is recommended for first setup.
+Set up the configuration for the bot (all configuration is listed below.)
+Running without any arguments (`/setup`) will launch an **interactive menu which walks through each setting - this is recommended for first setup**.
 If you want to quickly update one of the configurations without going through each setting, you can use the optional arguments - for example: `/setup log-channel:#log`
 
-**Make sure you set this or no updates will be logged!**
+**Make sure you set the log-channel or no updates will be logged!**
+
+### Log Channel
+The channel to log updates in
+
+### First Award Notification
+The users/roles mentioned when a tracked badge receives its first award
+
+### Update Notification
+The users/roles mentioned when a tracked game or badge is updated
+
+### New Badge Notification
+The users/roles mentioned when a tracked game has a new badge added
 
 ## `/tracking games`
 
