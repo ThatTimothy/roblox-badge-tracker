@@ -78,10 +78,15 @@ async function checkNewGameBadges(client: Client, id: number) {
 				createBadgeEmbed(stored.trackingBadges[badge.id])
 			),
 		]
+		const notifications: StoredNotification[] = ["newBadge"]
 
 		const channel = await getLogChannel(client)
 		if (channel) {
-			batchEmbedReply((message) => channel.send(message), embeds)
+			batchEmbedReply(
+				(message) => channel.send(message),
+				embeds,
+				notifications
+			)
 			logger.logGame(`Logged new badges for ${id}`)
 		}
 	} else {
