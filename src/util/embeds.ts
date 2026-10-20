@@ -14,6 +14,20 @@ import { BadgeData, GameData, getStored, StoredNotification } from "./store"
 import { Badge } from "./api"
 import { TimestampStyles } from "discord.js"
 
+function format(u: unknown) {
+	if (
+		typeof u === "boolean" ||
+		typeof u === "number" ||
+		typeof u === "string"
+	) {
+		return u.toString()
+	} else if (typeof u === "object" && u instanceof Date) {
+		return time(u, TimestampStyles.RelativeTime)
+	} else {
+		return `${u}`
+	}
+}
+
 export function createGameEmbed(gameData: GameData, badges: number) {
 	return new EmbedBuilder()
 		.setTitle(gameData.name)
@@ -38,21 +52,20 @@ export function createGameEmbed(gameData: GameData, badges: number) {
 
 export function createGameUpdateEmbed(
 	gameData: GameData,
-	updates: [string, unknown, unknown][],
-	currUpdated: Date | null
+	updates: [string, unknown, unknown][]
 ) {
 	return new EmbedBuilder()
 		.setTitle(gameData.name)
 		.setURL(`https://roblox.com/games/${gameData.rootPlaceId}`)
 		.setDescription(
-			`was updated ${currUpdated ? time(currUpdated, TimestampStyles.RelativeTime) : ""}`
+			`was updated ${time(new Date(gameData.updated), TimestampStyles.RelativeTime)}`
 		)
 		.setThumbnail(gameData.imageUrl)
 		.setColor(gameData.color)
 		.addFields(
-			updates.map(([name, old, curr]) => ({
+			updates.map(([name, curr, next]) => ({
 				name: name.charAt(0).toUpperCase() + name.slice(1),
-				value: `${`${old}`.slice(0, 500)} → ${`${curr}`.slice(0, 500)}`,
+				value: `${`${format(curr)}`.slice(0, 500)} → ${`${format(next)}`.slice(0, 500)}`,
 			}))
 		)
 }
@@ -89,22 +102,21 @@ export function createBadgeEmbed(
 
 export function createBadgeUpdateEmbed(
 	badgeData: BadgeData,
-	updates: [string, unknown, unknown][],
-	currUpdated: Date | null
+	updates: [string, unknown, unknown][]
 ) {
 	return new EmbedBuilder()
 		.setTitle(badgeData.name)
 		.setURL(`https://roblox.com/badges/${badgeData.id}`)
 		.setDescription(
 			`in [**${badgeData.awardingUniverse.name}**](https://roblox.com/games/${badgeData.awardingUniverse.rootPlaceId})` +
-				` was updated ${currUpdated ? time(currUpdated, TimestampStyles.RelativeTime) : ""}`
+				` was updated ${time(new Date(badgeData.updated), TimestampStyles.RelativeTime)}`
 		)
 		.setThumbnail(badgeData.imageUrl)
 		.setColor(badgeData.color)
 		.addFields(
-			updates.map(([name, old, curr]) => ({
+			updates.map(([name, curr, next]) => ({
 				name: name.charAt(0).toUpperCase() + name.slice(1),
-				value: `${`${old}`.slice(0, 500)} → ${`${curr}`.slice(0, 500)}`,
+				value: `${`${format(curr)}`.slice(0, 500)} → ${`${format(next)}`.slice(0, 500)}`,
 			}))
 		)
 }

@@ -1,4 +1,4 @@
-import { Client, EmbedBuilder, time, TimestampStyles } from "discord.js"
+import { Client, EmbedBuilder } from "discord.js"
 import API from "./api"
 import { getImageColor } from "./color"
 import { BadgeData, GameData, getStored, StoredNotification } from "./store"
@@ -13,7 +13,7 @@ import logger, { getLogChannel } from "./log"
 import { sleep } from "./sleep"
 import Config from "./config"
 
-const GAME_TRACKING_PROPERTIES: (keyof GameData)[] = [
+export const GAME_TRACKING_PROPERTIES = [
 	"name",
 	"description",
 	"copyingAllowed",
@@ -26,7 +26,7 @@ const GAME_TRACKING_PROPERTIES: (keyof GameData)[] = [
 	"genre",
 	"genre_l1",
 	"imageUrl",
-]
+] as const satisfies (keyof GameData)[]
 
 const BADGE_TRACKING_PROPERTIES: (keyof BadgeData)[] = [
 	"name",
@@ -109,43 +109,71 @@ async function checkNewGameBadges(client: Client, id: number) {
 	}
 }
 
-// Gets all updates for a given old and current object for which updated is provided
+// Gets all updates for a given current and next object for which updated is provided
+// Handles case where update does not change in updated time but property is added
+// `newPrevious` is set when a previous update is confirmed and should be stored (to prevent flicker)
 // This works for Universe and Badge currently to avoid duplicating time logic
-function getUpdates<T extends { updated: string }>(
-	old: T,
+function getUpdates<T extends { updated: string; previous?: Partial<T> }>(
 	current: T,
+	next: T,
 	tracking: (keyof T & string)[]
 ) {
-	const updates: [string, unknown, unknown][] = []
-	const oldUpdated = new Date(old.updated)
-	const currUpdated = new Date(current.updated)
+	const updates: [keyof T & string, unknown, unknown][] = []
+	const currentUpdated = new Date(current.updated)
+	const nextUpdated = new Date(next.updated)
 
 	for (const prop of tracking) {
-		const oldProp = old[prop]
 		const currentProp = current[prop]
-		if (currentProp != oldProp) {
+		const nextProp = next[prop]
+		if (nextProp !== currentProp) {
 			if (prop === "updated") {
-				updates.push([
-					prop,
-					time(oldUpdated, TimestampStyles.LongDateShortTime),
-					time(currUpdated, TimestampStyles.LongDateShortTime),
-				])
+				updates.push([prop, currentUpdated, nextUpdated])
 			} else {
-				updates.push([prop, oldProp, currentProp])
+				updates.push([prop, currentProp, nextProp])
 			}
 		}
 	}
 
 	// Ignore stale data
 	const timeSinceLastUpdate =
-		oldUpdated &&
-		currUpdated &&
-		currUpdated.getTime() - oldUpdated.getTime()
-	if (updates.length > 0 && timeSinceLastUpdate >= 0) {
+		currentUpdated &&
+		nextUpdated &&
+		nextUpdated.getTime() - currentUpdated.getTime()
+	if (updates.length === 0 || timeSinceLastUpdate < 0) {
 		return {
-			updates,
-			currUpdated,
+			updates: [],
 		}
+	}
+
+	// If a new update timestamp, accept updates
+	if (timeSinceLastUpdate > 0) {
+		// newPrevious is tracked properties of current version, before overridden by updated
+		const newPrevious: Partial<T> = {}
+		for (const prop of tracking) {
+			newPrevious[prop] = current[prop]
+		}
+		return { updates, newPrevious }
+	}
+
+	// timeSinceLastUpdate === 0 here
+	// API updates flicker between old and new version as update propagates
+	// For example, if name is updated from A -> B, the API might return A or B for a short while
+	// We need to prevent this - as it would create a bunch of fake update notifications
+	// Additionally, we cannot just accept the first update, as sometimes the update happens partially
+	// For example, updated goes from 0 -> 1, several requests later name finally goes from A -> B
+	// This is still a valid update - as we don't want to miss things
+	// Therefore, if the update timestamp is IDENTICAL (0 diff), check against previous update (previous updated timestamp)
+	// We do this by filtering out any update for which the value is identical to the previous update
+	return {
+		updates: updates.filter(([prop, _currProp, nextProp]) => {
+			const prevProp = current.previous?.[prop]
+			// If no previous ignore
+			if (prevProp === undefined) {
+				return true
+			}
+
+			return nextProp !== prevProp
+		}),
 	}
 }
 
@@ -175,19 +203,22 @@ export async function trackGames(client: Client) {
 			continue
 		}
 		const imageUrl = icons[universe.id]
-		const previous = stored.trackingGames[universe.id]
-		const merged = { ...previous, ...universe, imageUrl }
-		const result = getUpdates(previous, merged, GAME_TRACKING_PROPERTIES)
+		const current = stored.trackingGames[universe.id]
+		const next = { ...current, ...universe, imageUrl }
+		const { updates, newPrevious } = getUpdates(
+			current,
+			next,
+			GAME_TRACKING_PROPERTIES
+		)
 		stored.trackingGames[universe.id] = {
 			...stored.trackingGames[universe.id],
 			lastChecked: Date.now(),
 		}
 		// Only if an update
-		if (result) {
-			const { updates, currUpdated } = result
-			let color = previous.color
+		if (updates.length > 0) {
+			let color = current.color
 			// Update color (if image changed)
-			if (imageUrl !== previous.imageUrl) {
+			if (imageUrl !== current.imageUrl) {
 				color = await getImageColor(imageUrl)
 			}
 			// Ensure still tracking game before updating
@@ -196,10 +227,9 @@ export async function trackGames(client: Client) {
 			}
 
 			stored.trackingGames[universe.id] = {
-				...stored.trackingGames[universe.id],
-				...universe,
-				imageUrl,
+				...next,
 				color,
+				previous: newPrevious ? newPrevious : next.previous,
 			}
 
 			// Log & embed
@@ -210,8 +240,7 @@ export async function trackGames(client: Client) {
 			embeds.push(
 				createGameUpdateEmbed(
 					stored.trackingGames[universe.id],
-					updates,
-					currUpdated
+					updates
 				)
 			)
 		}
@@ -251,22 +280,25 @@ async function fetchBadge(client: Client, id: number, imageUrl: string) {
 	const badge = await API.getBadge(id)
 
 	const stored = await getStored()
-	const previous = stored.trackingBadges[id]
+	const current = stored.trackingBadges[id]
 	// Should always be true if still tracking badge
-	if (!previous) {
+	if (!current) {
 		return
 	}
 
 	const embeds: EmbedBuilder[] = []
 	const notifications: StoredNotification[] = []
-	const merged = { ...previous, ...badge, imageUrl }
-	const result = getUpdates(previous, merged, BADGE_TRACKING_PROPERTIES)
+	const next = { ...current, ...badge, imageUrl }
+	const { updates, newPrevious } = getUpdates(
+		current,
+		next,
+		BADGE_TRACKING_PROPERTIES
+	)
 	// Only if a meaningful update
-	if (result) {
-		const { updates, currUpdated } = result
-		let color = previous.color
+	if (updates.length > 0) {
+		let color = current.color
 		// Update image color (if image changed)
-		if (imageUrl !== previous.imageUrl) {
+		if (imageUrl !== current.imageUrl) {
 			color = await getImageColor(imageUrl)
 		}
 
@@ -276,25 +308,18 @@ async function fetchBadge(client: Client, id: number, imageUrl: string) {
 		}
 
 		stored.trackingBadges[id] = {
-			...stored.trackingBadges[id],
-			...badge,
-			imageUrl,
+			...next,
 			color,
+			previous: newPrevious ? newPrevious : next.previous,
 		}
 
 		// Log & embed
 		notifications.push("update")
 		logger.logBadge(`Updated ${id}`)
-		embeds.push(
-			createBadgeUpdateEmbed(
-				stored.trackingBadges[id],
-				updates,
-				currUpdated
-			)
-		)
+		embeds.push(createBadgeUpdateEmbed(stored.trackingBadges[id], updates))
 	}
 
-	if (badge.statistics.awardedCount > previous.statistics.awardedCount) {
+	if (badge.statistics.awardedCount > current.statistics.awardedCount) {
 		stored.trackingBadges[id] = {
 			...stored.trackingBadges[id],
 			statistics: badge.statistics,
@@ -308,9 +333,9 @@ async function fetchBadge(client: Client, id: number, imageUrl: string) {
 			notifications.push("firstAward")
 		}
 		logger.logBadge(
-			`Updated award count for ${id} - ${previous.statistics.awardedCount} -> ${badge.statistics.awardedCount}`
+			`Updated award count for ${id} - ${current.statistics.awardedCount} -> ${badge.statistics.awardedCount}`
 		)
-		embeds.push(createBadgeEmbed(previous, badge, firstAward))
+		embeds.push(createBadgeEmbed(current, badge, firstAward))
 	}
 
 	if (embeds.length > 0) {

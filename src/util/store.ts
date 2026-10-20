@@ -9,9 +9,14 @@ interface Theme {
 	color: RGB
 	imageUrl: string
 }
-export type BadgeData = Badge & Theme & { awardHistory: [number, number][] }
+export type BadgeData = Badge &
+	Theme & { awardHistory: [number, number][]; previous?: Partial<BadgeData> }
 export type GameData = Universe &
-	Theme & { lastChecked: number; existingBadges: number[] }
+	Theme & {
+		lastChecked: number
+		existingBadges: number[]
+		previous?: Partial<GameData>
+	}
 export type StoredNotificationList = {
 	users: Snowflake[]
 	roles: Snowflake[]
