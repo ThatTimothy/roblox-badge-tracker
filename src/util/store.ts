@@ -8,7 +8,6 @@ import { Snowflake } from "discord.js"
 interface Theme {
 	color: RGB
 	imageUrl: string
-	previousImageUrl?: string
 }
 export type BadgeData = Badge & Theme & { awardHistory: [number, number][] }
 export type GameData = Universe &

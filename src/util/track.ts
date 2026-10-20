@@ -1,7 +1,7 @@
 import { Client, EmbedBuilder, time, TimestampStyles } from "discord.js"
-import API, { Badge, Universe } from "./api"
+import API from "./api"
 import { getImageColor } from "./color"
-import { getStored, StoredNotification } from "./store"
+import { BadgeData, GameData, getStored, StoredNotification } from "./store"
 import {
 	batchEmbedReply,
 	createBadgeEmbed,
@@ -13,7 +13,7 @@ import logger, { getLogChannel } from "./log"
 import { sleep } from "./sleep"
 import Config from "./config"
 
-const UNIVERSE_TRACKING_PROPERTIES: (keyof Universe)[] = [
+const GAME_TRACKING_PROPERTIES: (keyof GameData)[] = [
 	"name",
 	"description",
 	"copyingAllowed",
@@ -25,15 +25,17 @@ const UNIVERSE_TRACKING_PROPERTIES: (keyof Universe)[] = [
 	"universeAvatarType",
 	"genre",
 	"genre_l1",
+	"imageUrl",
 ]
 
-const BADGE_TRACKING_PROPERTIES: (keyof Badge)[] = [
+const BADGE_TRACKING_PROPERTIES: (keyof BadgeData)[] = [
 	"name",
 	"description",
 	"enabled",
 	"iconImageId",
 	"created",
 	"updated",
+	"imageUrl",
 ]
 
 async function checkNewGameBadges(client: Client, id: number) {
@@ -139,7 +141,7 @@ function getUpdates<T extends { updated: string }>(
 		oldUpdated &&
 		currUpdated &&
 		currUpdated.getTime() - oldUpdated.getTime()
-	if (timeSinceLastUpdate >= 0) {
+	if (updates.length > 0 && timeSinceLastUpdate >= 0) {
 		return {
 			updates,
 			currUpdated,
@@ -168,66 +170,50 @@ export async function trackGames(client: Client) {
 	const embeds: EmbedBuilder[] = []
 	const notifications: StoredNotification[] = []
 	for (const universe of universes) {
-		const imageUrl = icons[universe.id]
-		const previous = stored.trackingGames[universe.id]
-		const result = getUpdates(
-			previous,
-			universe,
-			UNIVERSE_TRACKING_PROPERTIES
-		)
 		// Ensure still tracking game before updating
 		if (!stored.trackingGames[universe.id]) {
 			continue
 		}
+		const imageUrl = icons[universe.id]
+		const previous = stored.trackingGames[universe.id]
+		const merged = { ...previous, ...universe, imageUrl }
+		const result = getUpdates(previous, merged, GAME_TRACKING_PROPERTIES)
 		stored.trackingGames[universe.id] = {
 			...stored.trackingGames[universe.id],
 			lastChecked: Date.now(),
 		}
+		// Only if an update
 		if (result) {
+			const { updates, currUpdated } = result
+			let color = previous.color
+			// Update color (if image changed)
+			if (imageUrl !== previous.imageUrl) {
+				color = await getImageColor(imageUrl)
+			}
+			// Ensure still tracking game before updating
+			if (!stored.trackingGames[universe.id]) {
+				continue
+			}
+
 			stored.trackingGames[universe.id] = {
 				...stored.trackingGames[universe.id],
 				...universe,
+				imageUrl,
+				color,
 			}
 
-			const { updates, currUpdated } = result
-			// Check past two image urls to verify not API returning old version (this can happen when new image is rolling out)
-			const imageUrlChanged =
-				previous.imageUrl !== imageUrl &&
-				previous.previousImageUrl !== imageUrl
-
-			// Only if a meaningful update (including universe icon changing)
-			if (updates.length > 0 || imageUrlChanged) {
-				let color = previous.color
-				// Update image (if changed)
-				if (imageUrlChanged) {
-					color = await getImageColor(imageUrl)
-					updates.push(["ImageUrl", previous.imageUrl, imageUrl])
-				}
-				// Ensure still tracking game before updating
-				if (!stored.trackingGames[universe.id]) {
-					continue
-				}
-
-				stored.trackingGames[universe.id] = {
-					...stored.trackingGames[universe.id],
-					previousImageUrl: previous.imageUrl,
-					imageUrl,
-					color,
-				}
-
-				// Log & embed
-				if (!notifications.includes("update")) {
-					notifications.push("update")
-				}
-				logger.logGame(`Updated ${universe.id}`)
-				embeds.push(
-					createGameUpdateEmbed(
-						stored.trackingGames[universe.id],
-						updates,
-						currUpdated
-					)
+			// Log & embed
+			if (!notifications.includes("update")) {
+				notifications.push("update")
+			}
+			logger.logGame(`Updated ${universe.id}`)
+			embeds.push(
+				createGameUpdateEmbed(
+					stored.trackingGames[universe.id],
+					updates,
+					currUpdated
 				)
-			}
+			)
 		}
 	}
 
@@ -273,57 +259,45 @@ async function fetchBadge(client: Client, id: number, imageUrl: string) {
 
 	const embeds: EmbedBuilder[] = []
 	const notifications: StoredNotification[] = []
-	const result = getUpdates(previous, badge, BADGE_TRACKING_PROPERTIES)
+	const merged = { ...previous, ...badge, imageUrl }
+	const result = getUpdates(previous, merged, BADGE_TRACKING_PROPERTIES)
+	// Only if a meaningful update
 	if (result) {
+		const { updates, currUpdated } = result
+		let color = previous.color
+		// Update image color (if image changed)
+		if (imageUrl !== previous.imageUrl) {
+			color = await getImageColor(imageUrl)
+		}
+
+		// Ensure we are still tracking
+		if (!stored.trackingBadges[id]) {
+			return
+		}
+
 		stored.trackingBadges[id] = {
 			...stored.trackingBadges[id],
 			...badge,
+			imageUrl,
+			color,
 		}
 
-		const { updates, currUpdated } = result
-
-		// Check past two image urls to verify not API returning old version (this can happen when new image is rolling out)
-		const imageUrlChanged =
-			previous.imageUrl !== imageUrl &&
-			previous.previousImageUrl !== imageUrl
-
-		// Only if a meaningful update (including badge icon changing)
-		if (updates.length > 0 || imageUrlChanged) {
-			// Update image (if changed)
-			let color = previous.color
-			if (imageUrlChanged) {
-				color = await getImageColor(imageUrl)
-				updates.push(["ImageUrl", previous.imageUrl, imageUrl])
-			}
-
-			// Ensure we are still tracking
-			if (!stored.trackingBadges[id]) {
-				return
-			}
-
-			stored.trackingBadges[id] = {
-				...stored.trackingBadges[id],
-				previousImageUrl: previous.imageUrl,
-				imageUrl,
-				color,
-			}
-
-			// Log & embed
-			notifications.push("update")
-			logger.logBadge(`Updated ${id}`)
-			embeds.push(
-				createBadgeUpdateEmbed(
-					stored.trackingBadges[id],
-					updates,
-					currUpdated
-				)
+		// Log & embed
+		notifications.push("update")
+		logger.logBadge(`Updated ${id}`)
+		embeds.push(
+			createBadgeUpdateEmbed(
+				stored.trackingBadges[id],
+				updates,
+				currUpdated
 			)
-		}
+		)
 	}
 
 	if (badge.statistics.awardedCount > previous.statistics.awardedCount) {
 		stored.trackingBadges[id] = {
 			...stored.trackingBadges[id],
+			statistics: badge.statistics,
 			awardHistory: [
 				...stored.trackingBadges[id].awardHistory,
 				[Date.now(), badge.statistics.awardedCount],
