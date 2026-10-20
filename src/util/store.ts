@@ -16,6 +16,7 @@ export type GameData = Universe &
 		lastChecked: number
 		existingBadges: number[]
 		previous?: Partial<GameData>
+		previousImageUrls?: { url: string; expiry: number }[]
 	}
 export type StoredNotificationList = {
 	users: Snowflake[]

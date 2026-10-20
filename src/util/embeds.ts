@@ -58,7 +58,10 @@ export function createGameUpdateEmbed(
 		.setTitle(gameData.name)
 		.setURL(`https://roblox.com/games/${gameData.rootPlaceId}`)
 		.setDescription(
-			`was updated ${time(new Date(gameData.updated), TimestampStyles.RelativeTime)}`
+			`was updated ${time(new Date(gameData.updated), TimestampStyles.RelativeTime)}` +
+				(updates.length === 1 && updates[0][0] === "imageUrl"
+					? `, image was updated ${time(new Date(), TimestampStyles.RelativeTime)}`
+					: "")
 		)
 		.setThumbnail(gameData.imageUrl)
 		.setColor(gameData.color)

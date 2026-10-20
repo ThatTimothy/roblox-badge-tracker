@@ -22,6 +22,11 @@ const Config = {
 	MAX_AWARDED_TO_TRACK: 100,
 	STORE_INTERVAL_MS: 5 * 60 * 1000,
 
+	/* Don't mess with stuff below this unless you have read the code using them - these are fine tuned for ideal running */
+
+	// The time for a previous game image url to expire (become able to cause an update again)
+	GAME_IMAGE_URL_EXPIRY_MS: 5 * 60 * 1000,
+
 	// The time interval for fetching a single badge, including request time
 	// Single badge fetch endpoint allows 600 PER minute
 	BADGE_FETCH_INTERVAL_MS: (60 / 600) * 1000,

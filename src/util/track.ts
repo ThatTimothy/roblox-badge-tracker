@@ -25,7 +25,6 @@ export const GAME_TRACKING_PROPERTIES = [
 	"universeAvatarType",
 	"genre",
 	"genre_l1",
-	"imageUrl",
 ] as const satisfies (keyof GameData)[]
 
 const BADGE_TRACKING_PROPERTIES: (keyof BadgeData)[] = [
@@ -202,9 +201,21 @@ export async function trackGames(client: Client) {
 		if (!stored.trackingGames[universe.id]) {
 			continue
 		}
-		const imageUrl = icons[universe.id]
 		const current = stored.trackingGames[universe.id]
-		const next = { ...current, ...universe, imageUrl }
+
+		// For some reason, a game icon updating does not cause the game's updated property to change
+		// so, we handle imageUrl separately for game
+		// Only use new imageUrl if not any of the previous ones (with expiry in case actually swapped back)
+		const icon = icons[universe.id]
+		const imageUrl =
+			current.previousImageUrls &&
+			current.previousImageUrls.find(
+				({ url, expiry }) => url === icon && Date.now() < expiry
+			)
+				? current.imageUrl
+				: icon
+		const imageUrlChanged = imageUrl !== current.imageUrl
+		const next = { ...current, ...universe }
 		const { updates, newPrevious } = getUpdates(
 			current,
 			next,
@@ -214,12 +225,13 @@ export async function trackGames(client: Client) {
 			...stored.trackingGames[universe.id],
 			lastChecked: Date.now(),
 		}
-		// Only if an update
-		if (updates.length > 0) {
+		// Only if an update (or image changed)
+		if (updates.length > 0 || imageUrlChanged) {
 			let color = current.color
-			// Update color (if image changed)
-			if (imageUrl !== current.imageUrl) {
+			// Update image & color (if image changed)
+			if (imageUrlChanged) {
 				color = await getImageColor(imageUrl)
+				updates.push(["imageUrl", current.imageUrl, imageUrl])
 			}
 			// Ensure still tracking game before updating
 			if (!stored.trackingGames[universe.id]) {
@@ -228,6 +240,18 @@ export async function trackGames(client: Client) {
 
 			stored.trackingGames[universe.id] = {
 				...next,
+				imageUrl,
+				previousImageUrls: [
+					...(next.previousImageUrls
+						? next.previousImageUrls.filter(
+								({ expiry }) => Date.now() < expiry
+							)
+						: []),
+					{
+						url: current.imageUrl,
+						expiry: Date.now() + Config.GAME_IMAGE_URL_EXPIRY_MS,
+					},
+				],
 				color,
 				previous: newPrevious ? newPrevious : next.previous,
 			}
