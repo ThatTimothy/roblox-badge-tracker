@@ -13,6 +13,7 @@ import {
 	userMention,
 } from "discord.js"
 import {
+	AwardedMessage,
 	BadgeData,
 	GameData,
 	getStored,
@@ -20,6 +21,18 @@ import {
 	UpdatedMessage,
 } from "./store"
 import { TimestampStyles } from "discord.js"
+
+const AWARDED_TIMESPANS: [string, number][] = [
+	["last 5 minutes", 5 * 60 * 1000],
+	["last 15 minutes", 15 * 60 * 1000],
+	["last 30 minutes", 30 * 60 * 1000],
+	["last hour", 60 * 60 * 1000],
+	["last 2 hours", 2 * 60 * 60 * 1000],
+	["last 4 hours", 4 * 60 * 60 * 1000],
+	["last 8 hours", 8 * 60 * 60 * 1000],
+	["last 16 hours", 16 * 60 * 60 * 1000],
+	["last day", 24 * 60 * 60 * 1000],
+]
 
 function format(u: unknown) {
 	if (
@@ -109,6 +122,62 @@ export function createBadgeEmbed(
 						: previousCount.toLocaleString(),
 			},
 		])
+}
+
+// Embed that contains all previous badge information summarized nicely
+export function mergedBadgeEmbed(badgeData: BadgeData) {
+	const {
+		awardHistory,
+		statistics: { awardedCount },
+	} = badgeData
+	const earliest = awardHistory[0]
+	const latest = awardHistory[awardHistory.length - 1]
+	const timespan = latest[0] - earliest[0]
+
+	return createBadgeEmbed(badgeData).setFields([
+		{
+			name: "First Award",
+			value: `${earliest[1].toLocaleString()} (${time(Math.round(earliest[0] / 1000), TimestampStyles.RelativeTime)})`,
+		},
+		{
+			name: "Awarded",
+			value: `${awardedCount.toLocaleString()} as of ${time(Math.round(latest[0] / 1000), TimestampStyles.RelativeTime)}`,
+		},
+		...AWARDED_TIMESPANS.filter(([_, length]) => timespan > length).map(
+			([name, length]) => {
+				const cutoff = latest[0] - length
+
+				let closest = earliest
+				for (const entry of awardHistory) {
+					if (entry[0] <= cutoff) {
+						closest = entry
+					} else {
+						break
+					}
+				}
+
+				const start = closest[1]
+				const end = latest[1]
+
+				return {
+					name: `Awarded (${name})`,
+					value:
+						`${start.toLocaleString()} → ${end.toLocaleString()}` +
+						` (+${(end - start).toLocaleString()})`,
+				}
+			}
+		),
+		...(earliest[1] > 0
+			? [
+					{
+						name: "Awarded (all time)",
+						value:
+							`${earliest[1].toLocaleString()} → ${latest[1].toLocaleString()}` +
+							` (+${(latest[1] - earliest[1]).toLocaleString()})`,
+					},
+				]
+			: []),
+	])
 }
 
 export function createBadgeUpdatedEmbed(
@@ -258,4 +327,40 @@ export async function handleUpdatedMessage<T extends BadgeData | GameData>(
 		embed: embed.toJSON(),
 		updated: data.updated,
 	}
+}
+
+// If a previous awardedMessage, edits that into merged version
+// Otherwise, creates the appropriate embed and sends it
+// Returns the awardedMessage to be stored for future calls
+export async function handleAwardedMessage(
+	channel: TextChannel,
+	current: BadgeData,
+	updated: BadgeData
+): Promise<AwardedMessage> {
+	if (updated.awardedMessage) {
+		const newEmbed = mergedBadgeEmbed(updated)
+		await channel.messages.edit(updated.awardedMessage.id, {
+			embeds: [newEmbed],
+		})
+		return {
+			...updated.awardedMessage,
+			embed: newEmbed.toJSON(),
+		}
+	}
+
+	const firstAward = updated.awardHistory.length <= 2
+	const embed = createBadgeEmbed(
+		current,
+		updated.statistics.awardedCount,
+		false,
+		firstAward
+	)
+	const message = await channel.send({
+		content: firstAward
+			? getNotificationContent(["firstAward"])
+			: undefined,
+		embeds: [embed],
+	})
+
+	return { id: message.id, embed: embed.toJSON() }
 }

@@ -10,6 +10,11 @@ interface Theme {
 	imageUrl: string
 }
 
+export interface AwardedMessage {
+	id: Snowflake
+	embed: APIEmbed
+}
+
 export interface UpdatedMessage {
 	id: Snowflake
 	updated: string
@@ -21,6 +26,7 @@ export type BadgeData = Badge &
 		awardHistory: [number, number][]
 		previous?: Partial<BadgeData>
 		updatedMessage?: UpdatedMessage
+		awardedMessage?: AwardedMessage
 	}
 export type GameData = Universe &
 	Theme & {

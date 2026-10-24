@@ -8,6 +8,7 @@ import {
 	createGameUpdatedEmbed,
 	getLogChannel,
 	getNotificationContent,
+	handleAwardedMessage,
 	handleUpdatedMessage,
 } from "./messages"
 import logger from "./log"
@@ -378,26 +379,26 @@ async function fetchBadge(client: Client, id: number, imageUrl: string) {
 				[Date.now(), badge.statistics.awardedCount],
 			],
 		}
-		const firstAward = stored.trackingBadges[id].awardHistory.length <= 2
-		const channel = await getLogChannel(client)
 		logger.logBadge(
 			`Updated award count for ${id} - ${current.statistics.awardedCount} -> ${badge.statistics.awardedCount}`
 		)
+		const channel = await getLogChannel(client)
 		if (channel) {
 			// Send in background
-			await channel.send({
-				content: firstAward
-					? getNotificationContent(["firstAward"])
-					: undefined,
-				embeds: [
-					createBadgeEmbed(
-						current,
-						badge.statistics.awardedCount,
-						false,
-						firstAward
-					),
-				],
-			})
+			handleAwardedMessage(channel, current, stored.trackingBadges[id])
+				.then((awardedMessage) => {
+					if (!awardedMessage) return
+					// Ensure we are still tracking
+					if (!stored.trackingBadges[id]) {
+						return
+					}
+
+					stored.trackingBadges[id] = {
+						...stored.trackingBadges[id],
+						awardedMessage,
+					}
+				})
+				.catch(logger.error)
 			logger.logBadge(`Logged award update for ${id}`)
 		}
 	} else {
