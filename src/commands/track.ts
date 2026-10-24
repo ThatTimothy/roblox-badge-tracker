@@ -11,7 +11,7 @@ import {
 	batchEmbedReply,
 	createBadgeEmbed,
 	createSuccessEmbed,
-} from "../util/embeds"
+} from "../util/messages"
 
 export const data = new SlashCommandBuilder()
 	.setName("track")

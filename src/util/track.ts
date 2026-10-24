@@ -6,9 +6,10 @@ import {
 	createBadgeEmbed,
 	createBadgeUpdateEmbed,
 	createGameUpdateEmbed,
+	getLogChannel,
 	getNotificationContent,
-} from "./embeds"
-import logger, { getLogChannel } from "./log"
+} from "./messages"
+import logger from "./log"
 import { sleep } from "./sleep"
 import Config from "./config"
 

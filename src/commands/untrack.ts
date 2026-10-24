@@ -9,7 +9,7 @@ import {
 	SlashCommandSubcommandBuilder,
 } from "discord.js"
 import { getStored } from "../util/store"
-import { createSuccessEmbed } from "../util/embeds"
+import { createSuccessEmbed } from "../util/messages"
 import { autocompleteBadge, autocompleteGame } from "../util/autocomplete"
 
 export const data = new SlashCommandBuilder()

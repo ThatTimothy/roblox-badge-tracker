@@ -2,10 +2,12 @@ import {
 	APIEmbed,
 	APIEmbedField,
 	ChatInputCommandInteraction,
+	Client,
 	EmbedBuilder,
 	JSONEncodable,
 	RestOrArray,
 	roleMention,
+	SendableChannels,
 	time,
 	userMention,
 } from "discord.js"
@@ -149,27 +151,6 @@ export function createFailEmbed(
 		.addFields(...fields)
 }
 
-// Gets the content to mention users & roles (deduplicated) for a specific set of notifications
-export function getNotificationContent(notifications: StoredNotification[]) {
-	const stored = getStored()
-	const mentions = new Set<string>()
-	for (const notification of notifications) {
-		const storedNotification = stored.notifications[notification]
-		if (storedNotification) {
-			for (const user of storedNotification.users) {
-				mentions.add(userMention(user))
-			}
-			for (const role of storedNotification.roles) {
-				mentions.add(roleMention(role))
-			}
-		}
-	}
-
-	if (mentions.size > 0) {
-		return [...mentions].join(" ")
-	}
-}
-
 type Embeds = (APIEmbed | JSONEncodable<APIEmbed>)[]
 export async function batchEmbedReply(
 	interaction: ChatInputCommandInteraction,
@@ -191,4 +172,38 @@ export async function batchEmbedReply(
 			await interaction.followUp(message)
 		}
 	}
+}
+
+// Gets the content to mention users & roles (deduplicated) for a specific set of notifications
+export function getNotificationContent(notifications: StoredNotification[]) {
+	const stored = getStored()
+	const mentions = new Set<string>()
+	for (const notification of notifications) {
+		const storedNotification = stored.notifications[notification]
+		if (storedNotification) {
+			for (const user of storedNotification.users) {
+				mentions.add(userMention(user))
+			}
+			for (const role of storedNotification.roles) {
+				mentions.add(roleMention(role))
+			}
+		}
+	}
+
+	if (mentions.size > 0) {
+		return [...mentions].join(" ")
+	}
+}
+
+export async function getLogChannel(
+	client: Client
+): Promise<SendableChannels | undefined> {
+	const stored = getStored()
+	if (!stored.channels.logChannel) return
+	const channel =
+		client.channels.cache.get(stored.channels.logChannel) ||
+		(await client.channels.fetch(stored.channels.logChannel))
+	if (!channel) return
+	if (!channel.isSendable()) return
+	return channel
 }

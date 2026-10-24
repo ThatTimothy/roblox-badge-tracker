@@ -12,9 +12,13 @@ import { getStored, initializeStored, store } from "./util/store"
 import { readButtons, readCommands, readSelects } from "./util/parser"
 import { trackBadges, trackGames } from "./util/track"
 import API from "./util/api"
-import logger, { getLogChannel } from "./util/log"
+import logger from "./util/log"
 import { sleep } from "./util/sleep"
-import { createFailEmbed, createSuccessEmbed } from "./util/embeds"
+import {
+	createFailEmbed,
+	createSuccessEmbed,
+	getLogChannel,
+} from "./util/messages"
 import { parseArgs } from "node:util"
 
 let running = true

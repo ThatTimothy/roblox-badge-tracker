@@ -9,7 +9,7 @@ import {
 	createBadgeEmbed,
 	createFailEmbed,
 	createGameEmbed,
-} from "../util/embeds"
+} from "../util/messages"
 
 export const data = new SlashCommandBuilder()
 	.setName("tracking")
