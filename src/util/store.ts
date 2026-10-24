@@ -38,19 +38,28 @@ export interface Stored {
 }
 
 let loaded: Stored | null = null
+let dev: boolean = false
 
-async function retrieve(): Promise<Stored> {
+export async function initializeStored(initDev: boolean): Promise<Stored> {
+	if (loaded) {
+		throw new Error("Already initialized, can only initialize once!")
+	}
+
+	dev = initDev
+
 	try {
 		const file = await readFile(Config.STORE_FILE)
-		return JSON.parse(file.toString()) as Stored
+		loaded = JSON.parse(file.toString()) as Stored
+		return loaded
 	} catch (e) {
 		if (e && typeof e === "object" && "code" in e && e.code === "ENOENT") {
-			return {
+			loaded = {
 				channels: {},
 				notifications: {},
 				trackingGames: {},
 				trackingBadges: {},
 			}
+			return loaded
 		}
 
 		logger.error(`Failed to read "${Config.STORE_FILE}": ${e}`)
@@ -63,12 +72,17 @@ export async function store() {
 	if (!loaded || isSaving) return
 	isSaving = true
 	logger.log("Saving store...")
-	await writeFile(Config.STORE_FILE, JSON.stringify(loaded, null, 4))
+	await writeFile(
+		Config.STORE_FILE,
+		JSON.stringify(loaded, null, dev ? 4 : 0)
+	)
 	logger.success("Saved store")
 	isSaving = false
 }
 
-export async function getStored(): Promise<Stored> {
-	if (!loaded) loaded = await retrieve()
+export function getStored(): Stored {
+	if (!loaded) {
+		throw new Error("Stored must be initialized first")
+	}
 	return loaded
 }

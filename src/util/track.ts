@@ -38,7 +38,7 @@ const BADGE_TRACKING_PROPERTIES: (keyof BadgeData)[] = [
 ]
 
 async function checkNewGameBadges(client: Client, id: number) {
-	const stored = await getStored()
+	const stored = getStored()
 	const trackingGame = stored.trackingGames[id]
 
 	const badges = await API.getBadges(id)
@@ -177,7 +177,7 @@ function getUpdates<T extends { updated: string; previous?: Partial<T> }>(
 }
 
 export async function trackGames(client: Client) {
-	const stored = await getStored()
+	const stored = getStored()
 	const queue = Object.values(stored.trackingGames).map(
 		(trackingGame) => trackingGame.id
 	)
@@ -303,7 +303,7 @@ export async function trackGames(client: Client) {
 async function fetchBadge(client: Client, id: number, imageUrl: string) {
 	const badge = await API.getBadge(id)
 
-	const stored = await getStored()
+	const stored = getStored()
 	const current = stored.trackingBadges[id]
 	// Should always be true if still tracking badge
 	if (!current) {
@@ -379,7 +379,7 @@ async function fetchBadge(client: Client, id: number, imageUrl: string) {
 }
 
 export async function trackBadges(client: Client) {
-	const stored = await getStored()
+	const stored = getStored()
 	const queue = Object.values(stored.trackingBadges).map((badge) => badge.id)
 	const badgeIcons = await API.getBadgeIcons(queue)
 

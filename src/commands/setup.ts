@@ -92,10 +92,8 @@ for (const config of configuration) {
 	}
 }
 
-export async function getMessage(
-	index: number
-): Promise<BaseMessageOptionsWithPoll> {
-	const stored = await getStored()
+export function getMessage(index: number): BaseMessageOptionsWithPoll {
+	const stored = getStored()
 
 	const buttonRow = new ActionRowBuilder<ButtonBuilder>().addComponents([
 		new ButtonBuilder()
@@ -203,7 +201,7 @@ export async function getMessage(
 }
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-	const stored = await getStored()
+	const stored = getStored()
 
 	// Handle option args passed - if any passed we save & skip to review
 	let optionPassed = false
@@ -237,7 +235,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		}
 	}
 
-	const message = await getMessage(optionPassed ? configuration.length : 0)
+	const message = getMessage(optionPassed ? configuration.length : 0)
 	await interaction.reply({
 		...message,
 		flags: MessageFlags.Ephemeral,

@@ -10,7 +10,7 @@ export async function execute(interaction: AnySelectMenuInteraction) {
 		return
 	}
 
-	const stored = await getStored()
+	const stored = getStored()
 	if (
 		config.type === "channel" &&
 		interaction.isChannelSelectMenu() &&

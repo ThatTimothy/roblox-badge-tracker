@@ -44,7 +44,7 @@ export async function untrackGame(
 	interaction: ChatInputCommandInteraction | ButtonInteraction,
 	id: number
 ) {
-	const stored = await getStored()
+	const stored = getStored()
 	const trackingGame = Object.values(stored.trackingGames).find(
 		(trackingGame) => trackingGame.rootPlaceId == id
 	)
@@ -90,7 +90,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		}
 
 		const id = parseInt(match[0])
-		const stored = await getStored()
+		const stored = getStored()
 		if (!stored.trackingBadges[id]) {
 			return await interaction.reply("Not tracking that badge!")
 		}
@@ -127,8 +127,8 @@ export async function autocomplete(interaction: AutocompleteInteraction) {
 	const search = interaction.options.getFocused()
 	const subcommand = interaction.options.getSubcommand()
 	if (subcommand === "game") {
-		await interaction.respond(await autocompleteGame(search))
+		await interaction.respond(autocompleteGame(search))
 	} else {
-		await interaction.respond(await autocompleteBadge(search))
+		await interaction.respond(autocompleteBadge(search))
 	}
 }

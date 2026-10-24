@@ -27,7 +27,7 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction: ChatInputCommandInteraction) {
 	const subcommand = interaction.options.getSubcommand()
 	if (subcommand === "games") {
-		const stored = await getStored()
+		const stored = getStored()
 		const badges = Object.values(stored.trackingBadges)
 		const allEmbeds = Object.values(stored.trackingGames).map((gameData) =>
 			createGameEmbed(
@@ -56,7 +56,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 				: interaction.followUp({ embeds }))
 		}
 	} else {
-		const stored = await getStored()
+		const stored = getStored()
 		const badges = Object.values(stored.trackingBadges)
 		const allEmbeds = badges.map((badge) => createBadgeEmbed(badge))
 

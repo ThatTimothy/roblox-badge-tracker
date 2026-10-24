@@ -68,7 +68,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			return await interaction.editReply("Invalid link!")
 		}
 
-		const stored = await getStored()
+		const stored = getStored()
 		if (stored.trackingGames[universeId]) {
 			return await interaction.editReply("Already tracking that game!")
 		}
@@ -134,7 +134,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		await interaction.deferReply()
 
 		const id = parseInt(match[0])
-		const stored = await getStored()
+		const stored = getStored()
 		if (stored.trackingBadges[id]) {
 			return await interaction.editReply("Already tracking that badge!")
 		}

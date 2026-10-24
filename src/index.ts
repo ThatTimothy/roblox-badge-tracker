@@ -8,21 +8,18 @@ import {
 	TimestampStyles,
 } from "discord.js"
 import Config from "./util/config"
-import { getStored, store } from "./util/store"
+import { getStored, initializeStored, store } from "./util/store"
 import { readButtons, readCommands, readSelects } from "./util/parser"
 import { trackBadges, trackGames } from "./util/track"
 import API from "./util/api"
 import logger, { getLogChannel } from "./util/log"
 import { sleep } from "./util/sleep"
 import { createFailEmbed, createSuccessEmbed } from "./util/embeds"
-
-const client = new Client({
-	intents: [],
-})
+import { parseArgs } from "node:util"
 
 let running = true
 
-async function track() {
+async function track(client: Client<true>) {
 	async function trackGamesLoop() {
 		const start = Date.now()
 		await trackGames(client)
@@ -67,7 +64,7 @@ async function ready(client: Client<true>) {
 		`Roblox API key '${verified.name}' by ${verified.authorizedUserId} is verified!`
 	)
 
-	const stored = await getStored()
+	const stored = getStored()
 	const logIn = Date.now()
 	logger.log(`Last logout: ${stored.lastLogout}, now ${logIn}`)
 
@@ -187,7 +184,7 @@ async function ready(client: Client<true>) {
 	logger.success("Setup complete!")
 
 	// Tracking
-	const trackLoopPromise = track()
+	const trackLoopPromise = track(client)
 
 	// Shutdown handling
 	async function shutdown() {
@@ -257,8 +254,27 @@ async function ready(client: Client<true>) {
 	}
 }
 
-client.once(Events.ClientReady, (readyClient) => {
-	ready(readyClient).catch(logger.error)
-})
+async function main() {
+	const { values } = parseArgs({
+		options: {
+			dev: { type: "boolean", default: false },
+		},
+	})
+	if (values.dev) {
+		logger.success("Development mode enabled!")
+	}
 
-client.login(Config.BOT_TOKEN).catch(logger.error)
+	await initializeStored(values.dev)
+
+	const client = new Client({
+		intents: [],
+	})
+
+	client.once(Events.ClientReady, (readyClient) => {
+		ready(readyClient).catch(logger.error)
+	})
+
+	client.login(Config.BOT_TOKEN).catch(logger.error)
+}
+
+main().catch(logger.error)

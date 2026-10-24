@@ -17,7 +17,7 @@ export async function execute(interaction: AnySelectMenuInteraction) {
 		choices.delete("-1")
 	}
 
-	const stored = await getStored()
+	const stored = getStored()
 	const badges = Object.values(stored.trackingBadges)
 	const all = choices.has("all")
 	const selected = all

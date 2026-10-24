@@ -3,7 +3,7 @@
 	"version": "1.0.0",
 	"description": "A simple discord bot to track games and their badges",
 	"scripts": {
-		"dev": "tsc-watch --onSuccess \"node --enable-source-maps out/index.js\"",
+		"dev": "tsc-watch --onSuccess \"node --enable-source-maps out/index.js --dev\"",
 		"build": "tsc",
 		"register-commands": "node --enable-source-maps out/register-commands.js",
 		"lint": "eslint src",

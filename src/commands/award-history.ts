@@ -217,7 +217,7 @@ export function buildComponents(
 
 export async function execute(interaction: ChatInputCommandInteraction) {
 	const link = interaction.options.getString("link", false)
-	const stored = await getStored()
+	const stored = getStored()
 	const badges = Object.values(stored.trackingBadges)
 	const selected = new Set(badges.map((badge) => badge.id))
 	if (link) {
@@ -249,5 +249,5 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 
 export async function autocomplete(interaction: AutocompleteInteraction) {
 	const search = interaction.options.getFocused()
-	await interaction.respond(await autocompleteBadge(search, badgeHasHistory))
+	await interaction.respond(autocompleteBadge(search, badgeHasHistory))
 }

@@ -1,8 +1,8 @@
 import { ApplicationCommandOptionChoiceData } from "discord.js"
 import { BadgeData, getStored } from "./store"
 
-export async function autocompleteGame(search: string) {
-	const stored = await getStored()
+export function autocompleteGame(search: string) {
+	const stored = getStored()
 	const choices: ApplicationCommandOptionChoiceData[] = Object.values(
 		stored.trackingGames
 	).map((game) => ({
@@ -20,11 +20,11 @@ export async function autocompleteGame(search: string) {
 	return top25
 }
 
-export async function autocompleteBadge(
+export function autocompleteBadge(
 	search: string,
 	filter?: (badge: BadgeData) => boolean
 ) {
-	const stored = await getStored()
+	const stored = getStored()
 	let badges = Object.values(stored.trackingBadges)
 	if (filter) {
 		badges = badges.filter(filter)

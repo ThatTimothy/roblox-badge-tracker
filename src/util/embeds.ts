@@ -149,10 +149,8 @@ export function createFailEmbed(
 }
 
 // Gets the content to mention users & roles (deduplicated) for a specific set of notifications
-export async function getNotificationContent(
-	notifications: StoredNotification[]
-) {
-	const stored = await getStored()
+export function getNotificationContent(notifications: StoredNotification[]) {
+	const stored = getStored()
 	const mentions = new Set<string>()
 	for (const notification of notifications) {
 		const storedNotification = stored.notifications[notification]
@@ -182,7 +180,7 @@ export async function batchEmbedReply(
 	for (let i = 0; i < allEmbeds.length; i += 10) {
 		const content =
 			notifications && i == 0
-				? await getNotificationContent(notifications)
+				? getNotificationContent(notifications)
 				: undefined
 		const embeds = allEmbeds.slice(i, i + 10)
 		const message = {
