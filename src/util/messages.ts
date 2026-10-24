@@ -4,8 +4,10 @@ import {
 	ChannelType,
 	ChatInputCommandInteraction,
 	Client,
+	DiscordAPIError,
 	EmbedBuilder,
 	JSONEncodable,
+	RESTJSONErrorCodes,
 	RestOrArray,
 	roleMention,
 	TextChannel,
@@ -308,12 +310,24 @@ export async function handleUpdatedMessage<T extends BadgeData | GameData>(
 ): Promise<UpdatedMessage> {
 	if (data.updatedMessage && data.updatedMessage.updated === data.updated) {
 		const newEmbed = mergeUpdatedEmbed(data.updatedMessage.embed, embed)
-		await channel.messages.edit(data.updatedMessage.id, {
-			embeds: [newEmbed],
-		})
-		return {
-			...data.updatedMessage,
-			embed: newEmbed.toJSON(),
+		try {
+			await channel.messages.edit(data.updatedMessage.id, {
+				embeds: [newEmbed],
+			})
+			return {
+				...data.updatedMessage,
+				embed: newEmbed.toJSON(),
+			}
+		} catch (e) {
+			if (
+				e instanceof DiscordAPIError &&
+				e.code === RESTJSONErrorCodes.UnknownMessage
+			) {
+				// Message no longer exists - likely deleted
+				// Passthrough to resending message
+			} else {
+				throw e
+			}
 		}
 	}
 
@@ -339,12 +353,24 @@ export async function handleAwardedMessage(
 ): Promise<AwardedMessage> {
 	if (updated.awardedMessage) {
 		const newEmbed = mergedBadgeEmbed(updated)
-		await channel.messages.edit(updated.awardedMessage.id, {
-			embeds: [newEmbed],
-		})
-		return {
-			...updated.awardedMessage,
-			embed: newEmbed.toJSON(),
+		try {
+			await channel.messages.edit(updated.awardedMessage.id, {
+				embeds: [newEmbed],
+			})
+			return {
+				...updated.awardedMessage,
+				embed: newEmbed.toJSON(),
+			}
+		} catch (e) {
+			if (
+				e instanceof DiscordAPIError &&
+				e.code === RESTJSONErrorCodes.UnknownMessage
+			) {
+				// Message no longer exists - likely deleted
+				// Passthrough to resending message
+			} else {
+				throw e
+			}
 		}
 	}
 
