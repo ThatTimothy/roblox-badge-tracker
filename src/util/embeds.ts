@@ -1,7 +1,6 @@
 import {
 	APIEmbed,
 	APIEmbedField,
-	BaseMessageOptionsWithPoll,
 	ChatInputCommandInteraction,
 	EmbedBuilder,
 	JSONEncodable,
@@ -76,6 +75,7 @@ export function createGameUpdateEmbed(
 export function createBadgeEmbed(
 	badgeData: BadgeData,
 	updated?: Badge,
+	newBadge?: boolean,
 	firstAward?: boolean
 ) {
 	const previousCount = badgeData.statistics.awardedCount
@@ -85,7 +85,8 @@ export function createBadgeEmbed(
 		.setTitle(badgeData.name)
 		.setURL(`https://roblox.com/badges/${badgeData.id}`)
 		.setDescription(
-			`in [**${awardingUniverse.name}**](https://roblox.com/games/${awardingUniverse.rootPlaceId})`
+			(newBadge ? "__**NEW BADGE**__ " : "") +
+				`in [**${awardingUniverse.name}**](https://roblox.com/games/${awardingUniverse.rootPlaceId})`
 		)
 		.setThumbnail(badgeData.imageUrl)
 		.setColor(badgeData.color)
@@ -171,25 +172,13 @@ export function getNotificationContent(notifications: StoredNotification[]) {
 
 type Embeds = (APIEmbed | JSONEncodable<APIEmbed>)[]
 export async function batchEmbedReply(
-	interaction:
-		| ChatInputCommandInteraction
-		| ((message: BaseMessageOptionsWithPoll) => Promise<unknown>),
-	allEmbeds: Embeds,
-	notifications?: StoredNotification[]
+	interaction: ChatInputCommandInteraction,
+	allEmbeds: Embeds
 ) {
 	for (let i = 0; i < allEmbeds.length; i += 10) {
-		const content =
-			notifications && i == 0
-				? getNotificationContent(notifications)
-				: undefined
 		const embeds = allEmbeds.slice(i, i + 10)
 		const message = {
-			content,
 			embeds,
-		}
-
-		if (typeof interaction === "function") {
-			return await interaction(message)
 		}
 
 		if (!interaction.replied) {

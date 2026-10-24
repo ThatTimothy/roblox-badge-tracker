@@ -1,13 +1,12 @@
-import { Client, EmbedBuilder } from "discord.js"
+import { Client } from "discord.js"
 import API from "./api"
 import { getImageColor } from "./color"
-import { BadgeData, GameData, getStored, StoredNotification } from "./store"
+import { BadgeData, GameData, getStored } from "./store"
 import {
-	batchEmbedReply,
 	createBadgeEmbed,
 	createBadgeUpdateEmbed,
 	createGameUpdateEmbed,
-	createSuccessEmbed,
+	getNotificationContent,
 } from "./embeds"
 import logger, { getLogChannel } from "./log"
 import { sleep } from "./sleep"
@@ -66,28 +65,24 @@ async function checkNewGameBadges(client: Client, id: number) {
 			}
 		}
 
-		const totalBadgesTracked = Object.values(stored.trackingBadges).filter(
-			(trackingBadge) => trackingBadge.awardingUniverse.id == id
-		).length
 		logger.logGame(`Found ${toTrack.length} new badges for ${id}`)
-		const embeds = [
-			createSuccessEmbed(
-				`New Badges For ${trackingGame.name}`,
-				`Now tracking ${totalBadgesTracked} (+${toTrack.length})\n`
-			),
-			...toTrack.map((badge) =>
-				createBadgeEmbed(stored.trackingBadges[badge.id])
-			),
-		]
-		const notifications: StoredNotification[] = ["newBadge"]
 
 		const channel = await getLogChannel(client)
 		if (channel) {
 			// Send in background
-			batchEmbedReply(
-				(message) => channel.send(message),
-				embeds,
-				notifications
+			Promise.all(
+				toTrack.map(async (badge) =>
+					channel.send({
+						content: getNotificationContent(["newBadge"]),
+						embeds: [
+							createBadgeEmbed(
+								stored.trackingBadges[badge.id],
+								undefined,
+								true
+							),
+						],
+					})
+				)
 			).catch(logger.error)
 			logger.logGame(`Logged new badges for ${id}`)
 		}
@@ -194,8 +189,6 @@ export async function trackGames(client: Client) {
 		universes.map((universe) => universe.id)
 	)
 
-	const embeds: EmbedBuilder[] = []
-	const notifications: StoredNotification[] = []
 	for (const universe of universes) {
 		// Ensure still tracking game before updating
 		if (!stored.trackingGames[universe.id]) {
@@ -257,32 +250,28 @@ export async function trackGames(client: Client) {
 			}
 
 			// Log & embed
-			if (!notifications.includes("update")) {
-				notifications.push("update")
-			}
 			logger.logGame(`Updated ${universe.id}`)
-			embeds.push(
-				createGameUpdateEmbed(
-					stored.trackingGames[universe.id],
-					updates
-				)
-			)
-		}
-	}
 
-	if (embeds.length > 0) {
-		const channel = await getLogChannel(client)
-		if (channel) {
-			// Send in background
-			batchEmbedReply(
-				(message) => channel.send(message),
-				embeds,
-				notifications
-			).catch(logger.error)
-			logger.logGame("Logged updates for games")
+			const channel = await getLogChannel(client)
+			if (channel) {
+				logger.logGame("Logged updates for games")
+				// Send in background
+				await channel
+					.send({
+						content: getNotificationContent(["update"]),
+						embeds: [
+							createGameUpdateEmbed(
+								stored.trackingGames[universe.id],
+								updates
+							),
+						],
+					})
+					.catch(logger.error)
+				logger.logBadge(`Logged update for ${universe.id}`)
+			}
+		} else {
+			logger.logBadge(`No updates for ${universe.id}`)
 		}
-	} else {
-		logger.logGame("No updates for games")
 	}
 
 	while (queue.length > 0) {
@@ -310,8 +299,6 @@ async function fetchBadge(client: Client, id: number, imageUrl: string) {
 		return
 	}
 
-	const embeds: EmbedBuilder[] = []
-	const notifications: StoredNotification[] = []
 	const next = { ...current, ...badge, imageUrl }
 	const { updates, newPrevious } = getUpdates(
 		current,
@@ -338,9 +325,19 @@ async function fetchBadge(client: Client, id: number, imageUrl: string) {
 		}
 
 		// Log & embed
-		notifications.push("update")
 		logger.logBadge(`Updated ${id}`)
-		embeds.push(createBadgeUpdateEmbed(stored.trackingBadges[id], updates))
+		const channel = await getLogChannel(client)
+		if (channel) {
+			await channel.send({
+				content: getNotificationContent(["update"]),
+				embeds: [
+					createBadgeUpdateEmbed(stored.trackingBadges[id], updates),
+				],
+			})
+			logger.logBadge(`Logged update for ${id}`)
+		}
+	} else {
+		logger.logBadge(`No updates for ${id}`)
 	}
 
 	if (badge.statistics.awardedCount > current.statistics.awardedCount) {
@@ -353,28 +350,21 @@ async function fetchBadge(client: Client, id: number, imageUrl: string) {
 			],
 		}
 		const firstAward = stored.trackingBadges[id].awardHistory.length <= 2
-		if (firstAward) {
-			notifications.push("firstAward")
-		}
+		const channel = await getLogChannel(client)
 		logger.logBadge(
 			`Updated award count for ${id} - ${current.statistics.awardedCount} -> ${badge.statistics.awardedCount}`
 		)
-		embeds.push(createBadgeEmbed(current, badge, firstAward))
-	}
-
-	if (embeds.length > 0) {
-		const channel = await getLogChannel(client)
 		if (channel) {
-			// Send in background
-			batchEmbedReply(
-				(message) => channel.send(message),
-				embeds,
-				notifications
-			).catch(logger.error)
-			logger.logBadge(`Logged ${id}`)
+			await channel.send({
+				content: firstAward
+					? getNotificationContent(["firstAward"])
+					: undefined,
+				embeds: [createBadgeEmbed(current, badge, false, firstAward)],
+			})
+			logger.logBadge(`Logged award update for ${id}`)
 		}
 	} else {
-		logger.logBadge(`No updates for ${id}`)
+		logger.logBadge(`No award updates for ${id}`)
 	}
 }
 

@@ -5,6 +5,7 @@ import {
 } from "discord.js"
 import { getStored } from "../util/store"
 import {
+	batchEmbedReply,
 	createBadgeEmbed,
 	createFailEmbed,
 	createGameEmbed,
@@ -49,12 +50,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			})
 		}
 
-		for (let i = 0; i < allEmbeds.length; i += 10) {
-			const embeds = allEmbeds.slice(i, i + 10)
-			await (i === 0
-				? interaction.reply({ embeds })
-				: interaction.followUp({ embeds }))
-		}
+		await batchEmbedReply(interaction, allEmbeds)
 	} else {
 		const stored = getStored()
 		const badges = Object.values(stored.trackingBadges)
@@ -71,11 +67,6 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			})
 		}
 
-		for (let i = 0; i < allEmbeds.length; i += 10) {
-			const embeds = allEmbeds.slice(i, i + 10)
-			await (i === 0
-				? interaction.reply({ embeds })
-				: interaction.followUp({ embeds }))
-		}
+		await batchEmbedReply(interaction, allEmbeds)
 	}
 }
