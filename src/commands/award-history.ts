@@ -3,6 +3,7 @@ import {
 	AttachmentBuilder,
 	AutocompleteInteraction,
 	ChatInputCommandInteraction,
+	MessageFlags,
 	SlashCommandBuilder,
 	StringSelectMenuBuilder,
 	StringSelectMenuOptionBuilder,
@@ -227,6 +228,8 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	const link = interaction.options.getString("link", false)
 	const raw = interaction.options.get("raw", false)
 	const stored = getStored()
+	const ephemeral = interaction.channelId === stored.channels.logChannel
+	const flags = ephemeral ? MessageFlags.Ephemeral : undefined
 	const badges = Object.values(stored.trackingBadges)
 	const selected = new Set(badges.map((badge) => badge.id))
 	if (link) {
@@ -246,7 +249,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 		selected.add(id)
 	}
 
-	await interaction.deferReply()
+	await interaction.deferReply({ flags })
 
 	const attachment = await renderChartToAttachment(
 		badges.filter((badge) => selected.has(badge.id))

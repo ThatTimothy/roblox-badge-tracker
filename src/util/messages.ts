@@ -6,6 +6,7 @@ import {
 	Client,
 	DiscordAPIError,
 	EmbedBuilder,
+	InteractionReplyOptions,
 	JSONEncodable,
 	RESTJSONErrorCodes,
 	RestOrArray,
@@ -246,22 +247,20 @@ export function createFailEmbed(
 type Embeds = (APIEmbed | JSONEncodable<APIEmbed>)[]
 export async function batchEmbedReply(
 	interaction: ChatInputCommandInteraction,
-	allEmbeds: Embeds
+	allEmbeds: Embeds,
+	flags?: InteractionReplyOptions["flags"]
 ) {
 	for (let i = 0; i < allEmbeds.length; i += 10) {
 		const embeds = allEmbeds.slice(i, i + 10)
-		const message = {
-			embeds,
-		}
 
 		if (!interaction.replied) {
 			if (interaction.deferred) {
-				await interaction.editReply(message)
+				await interaction.editReply({ embeds })
 			} else {
-				await interaction.reply(message)
+				await interaction.reply({ embeds, flags })
 			}
 		} else {
-			await interaction.followUp(message)
+			await interaction.followUp({ embeds, flags })
 		}
 	}
 }

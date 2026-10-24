@@ -1,5 +1,6 @@
 import {
 	ChatInputCommandInteraction,
+	MessageFlags,
 	SlashCommandBuilder,
 	SlashCommandSubcommandBuilder,
 } from "discord.js"
@@ -26,9 +27,11 @@ export const data = new SlashCommandBuilder()
 	)
 
 export async function execute(interaction: ChatInputCommandInteraction) {
+	const stored = getStored()
+	const ephemeral = interaction.channelId === stored.channels.logChannel
+	const flags = ephemeral ? MessageFlags.Ephemeral : undefined
 	const subcommand = interaction.options.getSubcommand()
 	if (subcommand === "games") {
-		const stored = getStored()
 		const badges = Object.values(stored.trackingBadges)
 		const allEmbeds = Object.values(stored.trackingGames).map((gameData) =>
 			createGameEmbed(
@@ -47,12 +50,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 						"No games are currently being tracked, track one with `/track game [link]`!"
 					),
 				],
+				flags,
 			})
 		}
 
-		await batchEmbedReply(interaction, allEmbeds)
+		await batchEmbedReply(interaction, allEmbeds, flags)
 	} else {
-		const stored = getStored()
 		const badges = Object.values(stored.trackingBadges)
 		const allEmbeds = badges.map((badge) => createBadgeEmbed(badge))
 
@@ -64,9 +67,10 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 						"No badges are currently being tracked, track one with `/track badge [link]`!"
 					),
 				],
+				flags,
 			})
 		}
 
-		await batchEmbedReply(interaction, allEmbeds)
+		await batchEmbedReply(interaction, allEmbeds, flags)
 	}
 }
