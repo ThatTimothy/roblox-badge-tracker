@@ -3,20 +3,32 @@ import Config from "../util/config"
 import { Badge, Universe } from "./api"
 import logger from "./log"
 import { RGB } from "./color"
-import { Snowflake } from "discord.js"
+import { APIEmbed, Snowflake } from "discord.js"
 
 interface Theme {
 	color: RGB
 	imageUrl: string
 }
+
+export interface UpdatedMessage {
+	id: Snowflake
+	updated: string
+	embed: APIEmbed
+}
+
 export type BadgeData = Badge &
-	Theme & { awardHistory: [number, number][]; previous?: Partial<BadgeData> }
+	Theme & {
+		awardHistory: [number, number][]
+		previous?: Partial<BadgeData>
+		updatedMessage?: UpdatedMessage
+	}
 export type GameData = Universe &
 	Theme & {
 		lastChecked: number
 		existingBadges: number[]
 		previous?: Partial<GameData>
 		previousImageUrls?: { url: string; expiry: number }[]
+		updatedMessage?: UpdatedMessage
 	}
 export type StoredNotificationList = {
 	users: Snowflake[]

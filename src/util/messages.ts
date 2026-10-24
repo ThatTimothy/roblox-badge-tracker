@@ -1,17 +1,24 @@
 import {
 	APIEmbed,
 	APIEmbedField,
+	ChannelType,
 	ChatInputCommandInteraction,
 	Client,
 	EmbedBuilder,
 	JSONEncodable,
 	RestOrArray,
 	roleMention,
-	SendableChannels,
+	TextChannel,
 	time,
 	userMention,
 } from "discord.js"
-import { BadgeData, GameData, getStored, StoredNotification } from "./store"
+import {
+	BadgeData,
+	GameData,
+	getStored,
+	StoredNotification,
+	UpdatedMessage,
+} from "./store"
 import { TimestampStyles } from "discord.js"
 
 function format(u: unknown) {
@@ -125,6 +132,22 @@ export function createBadgeUpdatedEmbed(
 		)
 }
 
+export function mergeUpdatedEmbed(existing: APIEmbed, newer: EmbedBuilder) {
+	// Merge fields with existing, putting existing first, newer with timestamp
+	const fields = [
+		...(existing.fields ?? []),
+		...(newer.data.fields?.map((embed) => ({
+			...embed,
+			name:
+				embed.name +
+				` (as of ${time(new Date(), TimestampStyles.RelativeTime)})`,
+		})) ?? []),
+	]
+	newer.setFields(fields)
+
+	return newer
+}
+
 export function createSuccessEmbed(
 	title: string,
 	description: string,
@@ -195,13 +218,44 @@ export function getNotificationContent(notifications: StoredNotification[]) {
 
 export async function getLogChannel(
 	client: Client
-): Promise<SendableChannels | undefined> {
+): Promise<TextChannel | undefined> {
 	const stored = getStored()
 	if (!stored.channels.logChannel) return
 	const channel =
 		client.channels.cache.get(stored.channels.logChannel) ||
 		(await client.channels.fetch(stored.channels.logChannel))
 	if (!channel) return
-	if (!channel.isSendable()) return
+	if (channel.type !== ChannelType.GuildText) return
 	return channel
+}
+
+// If a previous updatedMessage, edits that one into a merged version
+// Otherwise, just sends the embed directly
+// Returns the updated message to be stored for future calls
+export async function handleUpdatedMessage<T extends BadgeData | GameData>(
+	channel: TextChannel,
+	data: T,
+	embed: EmbedBuilder
+): Promise<UpdatedMessage> {
+	if (data.updatedMessage && data.updatedMessage.updated === data.updated) {
+		const newEmbed = mergeUpdatedEmbed(data.updatedMessage.embed, embed)
+		await channel.messages.edit(data.updatedMessage.id, {
+			embeds: [newEmbed],
+		})
+		return {
+			...data.updatedMessage,
+			embed: newEmbed.toJSON(),
+		}
+	}
+
+	const message = await channel.send({
+		content: getNotificationContent(["updated"]),
+		embeds: [embed],
+	})
+
+	return {
+		id: message.id,
+		embed: embed.toJSON(),
+		updated: data.updated,
+	}
 }

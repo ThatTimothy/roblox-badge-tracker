@@ -8,6 +8,7 @@ import {
 	createGameUpdatedEmbed,
 	getLogChannel,
 	getNotificationContent,
+	handleUpdatedMessage,
 } from "./messages"
 import logger from "./log"
 import { sleep } from "./sleep"
@@ -238,15 +239,26 @@ async function trackGame(client: Client, universe: Universe, icon: string) {
 		const channel = await getLogChannel(client)
 		if (channel) {
 			// Send in background
-			await channel
-				.send({
-					content: getNotificationContent(["updated"]),
-					embeds: [
-						createGameUpdatedEmbed(
-							stored.trackingGames[universe.id],
-							updates
-						),
-					],
+			const embed = createGameUpdatedEmbed(
+				stored.trackingGames[universe.id],
+				updates
+			)
+			handleUpdatedMessage(
+				channel,
+				stored.trackingGames[universe.id],
+				embed
+			)
+				.then((updatedMessage) => {
+					if (!updatedMessage) return
+					// Ensure we are still tracking
+					if (!stored.trackingGames[universe.id]) {
+						return
+					}
+
+					stored.trackingGames[universe.id] = {
+						...stored.trackingGames[universe.id],
+						updatedMessage,
+					}
 				})
 				.catch(logger.error)
 			logger.logGame(`Logged updated for ${universe.id}`)
@@ -332,12 +344,25 @@ async function fetchBadge(client: Client, id: number, imageUrl: string) {
 		logger.logBadge(`Updated ${id}`)
 		const channel = await getLogChannel(client)
 		if (channel) {
-			await channel.send({
-				content: getNotificationContent(["updated"]),
-				embeds: [
-					createBadgeUpdatedEmbed(stored.trackingBadges[id], updates),
-				],
-			})
+			// Send/edit in background
+			const embed = createBadgeUpdatedEmbed(
+				stored.trackingBadges[id],
+				updates
+			)
+			handleUpdatedMessage(channel, stored.trackingBadges[id], embed)
+				.then((updatedMessage) => {
+					if (!updatedMessage) return
+					// Ensure we are still tracking
+					if (!stored.trackingBadges[id]) {
+						return
+					}
+
+					stored.trackingBadges[id] = {
+						...stored.trackingBadges[id],
+						updatedMessage,
+					}
+				})
+				.catch(logger.error)
 			logger.logBadge(`Logged updated for ${id}`)
 		}
 	} else {
@@ -359,6 +384,7 @@ async function fetchBadge(client: Client, id: number, imageUrl: string) {
 			`Updated award count for ${id} - ${current.statistics.awardedCount} -> ${badge.statistics.awardedCount}`
 		)
 		if (channel) {
+			// Send in background
 			await channel.send({
 				content: firstAward
 					? getNotificationContent(["firstAward"])
