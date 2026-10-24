@@ -65,6 +65,14 @@ export const data = new SlashCommandBuilder()
 			.setRequired(false)
 			.setAutocomplete(true)
 	)
+	.addBooleanOption((option) =>
+		option
+			.setName("raw")
+			.setDescription(
+				"Includes the raw .csv of award history - only works with specific link"
+			)
+			.setRequired(false)
+	)
 
 function badgeHasHistory(badge: BadgeData) {
 	return badge.awardHistory.length >= 2
@@ -217,6 +225,7 @@ export function buildComponents(
 
 export async function execute(interaction: ChatInputCommandInteraction) {
 	const link = interaction.options.getString("link", false)
+	const raw = interaction.options.get("raw", false)
 	const stored = getStored()
 	const badges = Object.values(stored.trackingBadges)
 	const selected = new Set(badges.map((badge) => badge.id))
@@ -244,7 +253,23 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 	)
 	const components = buildComponents(badges, selected, link === null)
 
-	await interaction.editReply({ components, files: [attachment] })
+	const files = [attachment]
+	if (raw && link) {
+		const headers = ["Unix Time (ms)", "Awarded"]
+		const badge = badges.find((badge) => selected.has(badge.id))
+		if (badge) {
+			const csvString = [
+				headers.join(","),
+				...badge.awardHistory.map((item) => item.join(",")),
+			].join("\n")
+			const csv = new AttachmentBuilder(Buffer.from(csvString, "utf-8"), {
+				name: `${badge.id}-award-history.csv`,
+			})
+			files.push(csv)
+		}
+	}
+
+	await interaction.editReply({ components, files })
 }
 
 export async function autocomplete(interaction: AutocompleteInteraction) {
