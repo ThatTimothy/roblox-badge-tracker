@@ -5,6 +5,7 @@ import {
 	ButtonInteraction,
 	ButtonStyle,
 	ChatInputCommandInteraction,
+	PermissionFlagsBits,
 	SlashCommandBuilder,
 	SlashCommandSubcommandBuilder,
 } from "discord.js"
@@ -39,6 +40,7 @@ export const data = new SlashCommandBuilder()
 					.setAutocomplete(true)
 			)
 	)
+	.setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
 
 export async function untrackGame(
 	interaction: ChatInputCommandInteraction | ButtonInteraction,

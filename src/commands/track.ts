@@ -1,5 +1,6 @@
 import {
 	ChatInputCommandInteraction,
+	PermissionFlagsBits,
 	SlashCommandBuilder,
 	SlashCommandSubcommandBuilder,
 } from "discord.js"
@@ -46,6 +47,7 @@ export const data = new SlashCommandBuilder()
 					.setRequired(true)
 			)
 	)
+	.setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
 
 export async function execute(interaction: ChatInputCommandInteraction) {
 	const subcommand = interaction.options.getSubcommand()
