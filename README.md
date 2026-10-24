@@ -63,7 +63,7 @@ The channel to log updates in
 ### First Award Notification
 The users/roles mentioned when a tracked badge receives its first award
 
-### Update Notification
+### Updated Notification
 The users/roles mentioned when a tracked game or badge is updated
 
 ### New Badge Notification

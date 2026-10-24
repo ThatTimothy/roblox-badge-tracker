@@ -12,7 +12,6 @@ import {
 	userMention,
 } from "discord.js"
 import { BadgeData, GameData, getStored, StoredNotification } from "./store"
-import { Badge } from "./api"
 import { TimestampStyles } from "discord.js"
 
 function format(u: unknown) {
@@ -51,7 +50,7 @@ export function createGameEmbed(gameData: GameData, badges: number) {
 		])
 }
 
-export function createGameUpdateEmbed(
+export function createGameUpdatedEmbed(
 	gameData: GameData,
 	updates: [string, unknown, unknown][]
 ) {
@@ -76,13 +75,12 @@ export function createGameUpdateEmbed(
 
 export function createBadgeEmbed(
 	badgeData: BadgeData,
-	updated?: Badge,
+	updatedCount?: number,
 	newBadge?: boolean,
 	firstAward?: boolean
 ) {
 	const previousCount = badgeData.statistics.awardedCount
-	const updatedCount = updated?.statistics.awardedCount
-	const awardingUniverse = (updated || badgeData).awardingUniverse
+	const awardingUniverse = badgeData.awardingUniverse
 	return new EmbedBuilder()
 		.setTitle(badgeData.name)
 		.setURL(`https://roblox.com/badges/${badgeData.id}`)
@@ -106,7 +104,7 @@ export function createBadgeEmbed(
 		])
 }
 
-export function createBadgeUpdateEmbed(
+export function createBadgeUpdatedEmbed(
 	badgeData: BadgeData,
 	updates: [string, unknown, unknown][]
 ) {

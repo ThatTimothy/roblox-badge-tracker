@@ -30,7 +30,7 @@ export interface Stored {
 	}
 	notifications: {
 		firstAward?: StoredNotificationList
-		update?: StoredNotificationList
+		updated?: StoredNotificationList
 		newBadge?: StoredNotificationList
 	}
 	trackingGames: Record<number, GameData>

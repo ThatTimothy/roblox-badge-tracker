@@ -53,10 +53,10 @@ export const configuration: ({
 			"The users/roles mentioned when a tracked badge receives its first award",
 	},
 	{
-		command: "update-notification",
-		configKey: "update",
+		command: "updated-notification",
+		configKey: "updated",
 		type: "mentionable",
-		name: "Update Notification",
+		name: "Updated Notification",
 		description:
 			"The users/roles mentioned when a tracked game or badge is updated",
 	},

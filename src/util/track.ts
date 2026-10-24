@@ -4,8 +4,8 @@ import { getImageColor } from "./color"
 import { BadgeData, GameData, getStored } from "./store"
 import {
 	createBadgeEmbed,
-	createBadgeUpdateEmbed,
-	createGameUpdateEmbed,
+	createBadgeUpdatedEmbed,
+	createGameUpdatedEmbed,
 	getLogChannel,
 	getNotificationContent,
 } from "./messages"
@@ -255,23 +255,22 @@ export async function trackGames(client: Client) {
 
 			const channel = await getLogChannel(client)
 			if (channel) {
-				logger.logGame("Logged updates for games")
 				// Send in background
 				await channel
 					.send({
-						content: getNotificationContent(["update"]),
+						content: getNotificationContent(["updated"]),
 						embeds: [
-							createGameUpdateEmbed(
+							createGameUpdatedEmbed(
 								stored.trackingGames[universe.id],
 								updates
 							),
 						],
 					})
 					.catch(logger.error)
-				logger.logBadge(`Logged update for ${universe.id}`)
+				logger.logGame(`Logged updated for ${universe.id}`)
 			}
 		} else {
-			logger.logBadge(`No updates for ${universe.id}`)
+			logger.logGame(`No updates for ${universe.id}`)
 		}
 	}
 
@@ -330,12 +329,12 @@ async function fetchBadge(client: Client, id: number, imageUrl: string) {
 		const channel = await getLogChannel(client)
 		if (channel) {
 			await channel.send({
-				content: getNotificationContent(["update"]),
+				content: getNotificationContent(["updated"]),
 				embeds: [
-					createBadgeUpdateEmbed(stored.trackingBadges[id], updates),
+					createBadgeUpdatedEmbed(stored.trackingBadges[id], updates),
 				],
 			})
-			logger.logBadge(`Logged update for ${id}`)
+			logger.logBadge(`Logged updated for ${id}`)
 		}
 	} else {
 		logger.logBadge(`No updates for ${id}`)
@@ -360,12 +359,19 @@ async function fetchBadge(client: Client, id: number, imageUrl: string) {
 				content: firstAward
 					? getNotificationContent(["firstAward"])
 					: undefined,
-				embeds: [createBadgeEmbed(current, badge, false, firstAward)],
+				embeds: [
+					createBadgeEmbed(
+						current,
+						badge.statistics.awardedCount,
+						false,
+						firstAward
+					),
+				],
 			})
 			logger.logBadge(`Logged award update for ${id}`)
 		}
 	} else {
-		logger.logBadge(`No award updates for ${id}`)
+		logger.logBadge(`No award update for ${id}`)
 	}
 }
 
