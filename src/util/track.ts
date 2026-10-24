@@ -1,5 +1,5 @@
 import { Client } from "discord.js"
-import API from "./api"
+import API, { Universe } from "./api"
 import { getImageColor } from "./color"
 import { BadgeData, GameData, getStored } from "./store"
 import {
@@ -172,6 +172,90 @@ function getUpdates<T extends { updated: string; previous?: Partial<T> }>(
 	}
 }
 
+async function trackGame(client: Client, universe: Universe, icon: string) {
+	const stored = getStored()
+	// Ensure still tracking game before updating
+	if (!stored.trackingGames[universe.id]) {
+		return
+	}
+	const current = stored.trackingGames[universe.id]
+
+	// For some reason, a game icon updating does not cause the game's updated property to change
+	// so, we handle imageUrl separately for game
+	// Only use new imageUrl if not any of the previous ones (with expiry in case actually swapped back)
+	const imageUrl =
+		current.previousImageUrls &&
+		current.previousImageUrls.find(
+			({ url, expiry }) => url === icon && Date.now() < expiry
+		)
+			? current.imageUrl
+			: icon
+	const imageUrlChanged = imageUrl !== current.imageUrl
+	const next = { ...current, ...universe }
+	const { updates, newPrevious } = getUpdates(
+		current,
+		next,
+		GAME_TRACKING_PROPERTIES
+	)
+	stored.trackingGames[universe.id] = {
+		...stored.trackingGames[universe.id],
+		lastChecked: Date.now(),
+	}
+	// Only if an update (or image changed)
+	if (updates.length > 0 || imageUrlChanged) {
+		let color = current.color
+		// Update image & color (if image changed)
+		if (imageUrlChanged) {
+			color = await getImageColor(imageUrl)
+			updates.push(["imageUrl", current.imageUrl, imageUrl])
+		}
+		// Ensure still tracking game before updating
+		if (!stored.trackingGames[universe.id]) {
+			return
+		}
+
+		stored.trackingGames[universe.id] = {
+			...next,
+			imageUrl,
+			previousImageUrls: [
+				...(next.previousImageUrls
+					? next.previousImageUrls.filter(
+							({ expiry }) => Date.now() < expiry
+						)
+					: []),
+				{
+					url: current.imageUrl,
+					expiry: Date.now() + Config.GAME_IMAGE_URL_EXPIRY_MS,
+				},
+			],
+			color,
+			previous: newPrevious ? newPrevious : next.previous,
+		}
+
+		// Log & embed
+		logger.logGame(`Updated ${universe.id}`)
+
+		const channel = await getLogChannel(client)
+		if (channel) {
+			// Send in background
+			await channel
+				.send({
+					content: getNotificationContent(["updated"]),
+					embeds: [
+						createGameUpdatedEmbed(
+							stored.trackingGames[universe.id],
+							updates
+						),
+					],
+				})
+				.catch(logger.error)
+			logger.logGame(`Logged updated for ${universe.id}`)
+		}
+	} else {
+		logger.logGame(`No updates for ${universe.id}`)
+	}
+}
+
 export async function trackGames(client: Client) {
 	const stored = getStored()
 	const queue = Object.values(stored.trackingGames).map(
@@ -191,87 +275,7 @@ export async function trackGames(client: Client) {
 	)
 
 	for (const universe of universes) {
-		// Ensure still tracking game before updating
-		if (!stored.trackingGames[universe.id]) {
-			continue
-		}
-		const current = stored.trackingGames[universe.id]
-
-		// For some reason, a game icon updating does not cause the game's updated property to change
-		// so, we handle imageUrl separately for game
-		// Only use new imageUrl if not any of the previous ones (with expiry in case actually swapped back)
-		const icon = icons[universe.id]
-		const imageUrl =
-			current.previousImageUrls &&
-			current.previousImageUrls.find(
-				({ url, expiry }) => url === icon && Date.now() < expiry
-			)
-				? current.imageUrl
-				: icon
-		const imageUrlChanged = imageUrl !== current.imageUrl
-		const next = { ...current, ...universe }
-		const { updates, newPrevious } = getUpdates(
-			current,
-			next,
-			GAME_TRACKING_PROPERTIES
-		)
-		stored.trackingGames[universe.id] = {
-			...stored.trackingGames[universe.id],
-			lastChecked: Date.now(),
-		}
-		// Only if an update (or image changed)
-		if (updates.length > 0 || imageUrlChanged) {
-			let color = current.color
-			// Update image & color (if image changed)
-			if (imageUrlChanged) {
-				color = await getImageColor(imageUrl)
-				updates.push(["imageUrl", current.imageUrl, imageUrl])
-			}
-			// Ensure still tracking game before updating
-			if (!stored.trackingGames[universe.id]) {
-				continue
-			}
-
-			stored.trackingGames[universe.id] = {
-				...next,
-				imageUrl,
-				previousImageUrls: [
-					...(next.previousImageUrls
-						? next.previousImageUrls.filter(
-								({ expiry }) => Date.now() < expiry
-							)
-						: []),
-					{
-						url: current.imageUrl,
-						expiry: Date.now() + Config.GAME_IMAGE_URL_EXPIRY_MS,
-					},
-				],
-				color,
-				previous: newPrevious ? newPrevious : next.previous,
-			}
-
-			// Log & embed
-			logger.logGame(`Updated ${universe.id}`)
-
-			const channel = await getLogChannel(client)
-			if (channel) {
-				// Send in background
-				await channel
-					.send({
-						content: getNotificationContent(["updated"]),
-						embeds: [
-							createGameUpdatedEmbed(
-								stored.trackingGames[universe.id],
-								updates
-							),
-						],
-					})
-					.catch(logger.error)
-				logger.logGame(`Logged updated for ${universe.id}`)
-			}
-		} else {
-			logger.logGame(`No updates for ${universe.id}`)
-		}
+		await trackGame(client, universe, icons[universe.id])
 	}
 
 	while (queue.length > 0) {
