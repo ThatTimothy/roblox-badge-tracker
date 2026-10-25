@@ -72,8 +72,7 @@ async function checkNewGameBadges(client: Client, id: number) {
 
 		const channel = await getLogChannel(client)
 		if (channel) {
-			// Send in background
-			Promise.all(
+			await Promise.all(
 				toTrack.map(async (badge) =>
 					channel.send({
 						content: getNotificationContent(["newBadge"]),
@@ -86,7 +85,7 @@ async function checkNewGameBadges(client: Client, id: number) {
 						],
 					})
 				)
-			).catch(logger.error)
+			)
 			logger.logGame(`Logged new badges for ${id}`)
 		}
 	} else {
@@ -247,29 +246,26 @@ async function trackGame(client: Client, universe: Universe, icon: string) {
 
 		const channel = await getLogChannel(client)
 		if (channel) {
-			// Send in background
 			const embed = createGameUpdatedEmbed(
 				stored.trackingGames[universe.id],
 				updates
 			)
-			handleUpdatedMessage(
+			await handleUpdatedMessage(
 				channel,
 				stored.trackingGames[universe.id],
 				embed
-			)
-				.then((updatedMessage) => {
-					if (!updatedMessage) return
-					// Ensure we are still tracking
-					if (!stored.trackingGames[universe.id]) {
-						return
-					}
+			).then((updatedMessage) => {
+				if (!updatedMessage) return
+				// Ensure we are still tracking
+				if (!stored.trackingGames[universe.id]) {
+					return
+				}
 
-					stored.trackingGames[universe.id] = {
-						...stored.trackingGames[universe.id],
-						updatedMessage,
-					}
-				})
-				.catch(logger.error)
+				stored.trackingGames[universe.id] = {
+					...stored.trackingGames[universe.id],
+					updatedMessage,
+				}
+			})
 			logger.logGame(`Logged updated for ${universe.id}`)
 		}
 	} else {
@@ -353,29 +349,35 @@ async function fetchBadge(client: Client, id: number, imageUrl: string) {
 		logger.logBadge(`Updated ${id}`)
 		const channel = await getLogChannel(client)
 		if (channel) {
-			// Send/edit in background
 			const embed = createBadgeUpdatedEmbed(
 				stored.trackingBadges[id],
 				updates
 			)
-			handleUpdatedMessage(channel, stored.trackingBadges[id], embed)
-				.then((updatedMessage) => {
-					if (!updatedMessage) return
-					// Ensure we are still tracking
-					if (!stored.trackingBadges[id]) {
-						return
-					}
+			await handleUpdatedMessage(
+				channel,
+				stored.trackingBadges[id],
+				embed
+			).then((updatedMessage) => {
+				if (!updatedMessage) return
+				// Ensure we are still tracking
+				if (!stored.trackingBadges[id]) {
+					return
+				}
 
-					stored.trackingBadges[id] = {
-						...stored.trackingBadges[id],
-						updatedMessage,
-					}
-				})
-				.catch(logger.error)
+				stored.trackingBadges[id] = {
+					...stored.trackingBadges[id],
+					updatedMessage,
+				}
+			})
 			logger.logBadge(`Logged updated for ${id}`)
 		}
 	} else {
 		logger.logBadge(`No updates for ${id}`)
+	}
+
+	// Ensure we are still tracking
+	if (!stored.trackingBadges[id]) {
+		return
 	}
 
 	if (badge.statistics.awardedCount > current.statistics.awardedCount) {
@@ -392,21 +394,22 @@ async function fetchBadge(client: Client, id: number, imageUrl: string) {
 		)
 		const channel = await getLogChannel(client)
 		if (channel) {
-			// Send in background
-			handleAwardedMessage(channel, current, stored.trackingBadges[id])
-				.then((awardedMessage) => {
-					if (!awardedMessage) return
-					// Ensure we are still tracking
-					if (!stored.trackingBadges[id]) {
-						return
-					}
+			await handleAwardedMessage(
+				channel,
+				current,
+				stored.trackingBadges[id]
+			).then((awardedMessage) => {
+				if (!awardedMessage) return
+				// Ensure we are still tracking
+				if (!stored.trackingBadges[id]) {
+					return
+				}
 
-					stored.trackingBadges[id] = {
-						...stored.trackingBadges[id],
-						awardedMessage,
-					}
-				})
-				.catch(logger.error)
+				stored.trackingBadges[id] = {
+					...stored.trackingBadges[id],
+					awardedMessage,
+				}
+			})
 			logger.logBadge(`Logged award update for ${id}`)
 		}
 	} else {
