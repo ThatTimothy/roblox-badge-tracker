@@ -27,6 +27,10 @@ const Config = {
 	// The time for a previous game image url to expire (become able to cause an update again)
 	GAME_IMAGE_URL_EXPIRY_MS: 5 * 60 * 1000,
 
+	// The time after an update which we allow a change without updated changing to merge into old update
+	// This handles the case where a property updates before updated does
+	UPDATE_MERGE_INTERVAL_MS: 5 * 60 * 1000,
+
 	// The time interval for fetching a single badge, including request time
 	// Single badge fetch endpoint allows 600 PER minute
 	BADGE_FETCH_INTERVAL_MS: (60 / 600) * 1000,

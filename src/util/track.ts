@@ -153,6 +153,14 @@ function getUpdates<T extends { updated: string; previous?: Partial<T> }>(
 	}
 
 	// timeSinceLastUpdate === 0 here
+	// If the update was a significant time ago, likely not a part of it and more likely we got the new property before actual update
+	// For example, name goes from A -> B, then a while later updated goes from 0 -> 1 can occur
+	if (
+		Date.now() - currentUpdated.getTime() >
+		Config.UPDATE_MERGE_INTERVAL_MS
+	) {
+		return { updates: [] }
+	}
 	// API updates flicker between old and new version as update propagates
 	// For example, if name is updated from A -> B, the API might return A or B for a short while
 	// We need to prevent this - as it would create a bunch of fake update notifications
