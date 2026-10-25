@@ -170,7 +170,7 @@ function getAwardedAtTimespanStarts(awardHistory: BadgeData["awardHistory"]) {
 }
 
 // Embed that contains all previous badge information summarized nicely
-export function mergedBadgeEmbed(badgeData: BadgeData) {
+export function createBadgeSummaryEmbed(badgeData: BadgeData) {
 	const {
 		awardHistory,
 		statistics: { awardedCount },
@@ -378,15 +378,24 @@ export async function handleAwardedMessage(
 	current: BadgeData,
 	updated: BadgeData
 ): Promise<AwardedMessage> {
+	const firstAward = updated.awardHistory.length <= 2
+	const embed = firstAward
+		? createBadgeEmbed(
+				current,
+				updated.statistics.awardedCount,
+				false,
+				firstAward
+			)
+		: createBadgeSummaryEmbed(updated)
+
 	if (updated.awardedMessage) {
-		const newEmbed = mergedBadgeEmbed(updated)
 		try {
 			await channel.messages.edit(updated.awardedMessage.id, {
-				embeds: [newEmbed],
+				embeds: [embed],
 			})
 			return {
 				...updated.awardedMessage,
-				embed: newEmbed.toJSON(),
+				embed: embed.toJSON(),
 			}
 		} catch (e) {
 			if (
@@ -401,13 +410,6 @@ export async function handleAwardedMessage(
 		}
 	}
 
-	const firstAward = updated.awardHistory.length <= 2
-	const embed = createBadgeEmbed(
-		current,
-		updated.statistics.awardedCount,
-		false,
-		firstAward
-	)
 	const message = await channel.send({
 		content: firstAward
 			? getNotificationContent(["firstAward"])
