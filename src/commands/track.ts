@@ -117,7 +117,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 			createSuccessEmbed(
 				`Now Tracking ${universe.name}`,
 				`Scanned [${universe.name}](https://roblox.com/games/${id}), found ${badges.length} badges\n` +
-					`Now tracking ${toTrack.length}${maxAwarded === null ? "" : ` (threshold <= ${maxAwarded.toLocaleString()} awarded)`}\n`
+					`Now tracking ${toTrack.length}${maxAwarded <= 0 ? "" : ` (threshold <= ${maxAwarded.toLocaleString()} awarded)`}\n`
 			),
 			...toTrack.map((badge) =>
 				createBadgeEmbed(stored.trackingBadges[badge.id])
