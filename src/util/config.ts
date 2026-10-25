@@ -15,7 +15,6 @@ const Config = {
 	BOT_TOKEN: requireEnv("BOT_TOKEN"),
 
 	CLIENT_ID: requireEnv("CLIENT_ID"),
-	GUILD_ID: requireEnv("GUILD_ID"),
 
 	STORE_FILE: "store.json",
 

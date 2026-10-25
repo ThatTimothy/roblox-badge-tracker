@@ -6,6 +6,7 @@
 		"dev": "tsc-watch --onSuccess \"node --enable-source-maps out/index.js --dev\"",
 		"build": "tsc",
 		"register-commands": "node --enable-source-maps out/register-commands.js",
+		"register-commands:dev": "node --enable-source-maps out/register-commands.js --dev",
 		"lint": "eslint src",
 		"format": "prettier --write ."
 	},
