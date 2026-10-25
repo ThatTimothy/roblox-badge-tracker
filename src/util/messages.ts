@@ -25,7 +25,9 @@ import {
 } from "./store"
 import { TimestampStyles } from "discord.js"
 
+// Possible timespans to display, in order of shortest to largest
 const AWARDED_TIMESPANS: [string, number][] = [
+	["last change", 1],
 	["last 5 minutes", 5 * 60 * 1000],
 	["last 15 minutes", 15 * 60 * 1000],
 	["last 30 minutes", 30 * 60 * 1000],
@@ -127,6 +129,46 @@ export function createBadgeEmbed(
 		])
 }
 
+// Gets the awarded at the start of each AWARDED_TIMESPAN
+// Only includes timespans for which tracked data at the start
+function getAwardedAtTimespanStarts(awardHistory: BadgeData["awardHistory"]) {
+	const cutoffs: [string, number][] = []
+	const earliest = awardHistory[0]
+	const latest = awardHistory[awardHistory.length - 1]
+
+	let highBound = awardHistory.length - 1 - 1 // Cannot start at latest
+	for (const [name, timespan] of AWARDED_TIMESPANS) {
+		// Binary search for earliest time at or equal to the cutoff
+		// Goal: i such that awardHistory[i][0] >= cutoff and awardHistory[i - 1][0] < cutoff
+		const cutoff = latest[0] - timespan
+
+		// Exclude timespan (and future timespans) if earliest is not within cutoff
+		if (earliest[0] > cutoff) {
+			break
+		}
+
+		let low = 0
+		let high = highBound
+		while (low < high) {
+			const mid = Math.floor((low + high) / 2)
+			const midTime = awardHistory[mid][0]
+			if (midTime >= cutoff) {
+				// mid is new upper bound (inclusive mid, since mid is possible)
+				high = mid
+			} else {
+				// mid + 1 is new lower bound (exclusive mid, since mid not possible)
+				low = mid + 1
+			}
+		}
+
+		cutoffs.push([name, awardHistory[low][1]])
+
+		highBound = low
+	}
+
+	return cutoffs
+}
+
 // Embed that contains all previous badge information summarized nicely
 export function mergedBadgeEmbed(badgeData: BadgeData) {
 	const {
@@ -134,42 +176,28 @@ export function mergedBadgeEmbed(badgeData: BadgeData) {
 		statistics: { awardedCount },
 	} = badgeData
 	const earliest = awardHistory[0]
+	const firstAward = awardHistory[1]
 	const latest = awardHistory[awardHistory.length - 1]
-	const timespan = latest[0] - earliest[0]
 
 	return createBadgeEmbed(badgeData).setFields([
 		{
 			name: "First Award",
-			value: `${earliest[1].toLocaleString()} (${time(Math.round(earliest[0] / 1000), TimestampStyles.RelativeTime)})`,
+			value: `${earliest[1].toLocaleString()} → ${firstAward[1].toLocaleString()} (${time(Math.round(firstAward[0] / 1000), TimestampStyles.RelativeTime)})`,
 		},
 		{
 			name: "Awarded",
 			value: `${awardedCount.toLocaleString()} as of ${time(Math.round(latest[0] / 1000), TimestampStyles.RelativeTime)}`,
 		},
-		...AWARDED_TIMESPANS.filter(([_, length]) => timespan > length).map(
-			([name, length]) => {
-				const cutoff = latest[0] - length
+		...getAwardedAtTimespanStarts(awardHistory).map(([name, start]) => {
+			const end = latest[1]
 
-				let closest = earliest
-				for (const entry of awardHistory) {
-					if (entry[0] <= cutoff) {
-						closest = entry
-					} else {
-						break
-					}
-				}
-
-				const start = closest[1]
-				const end = latest[1]
-
-				return {
-					name: `Awarded (${name})`,
-					value:
-						`${start.toLocaleString()} → ${end.toLocaleString()}` +
-						` (+${(end - start).toLocaleString()})`,
-				}
+			return {
+				name: `Awarded (${name})`,
+				value:
+					`${start.toLocaleString()} → ${end.toLocaleString()}` +
+					` (+${(end - start).toLocaleString()})`,
 			}
-		),
+		}),
 		...(earliest[1] > 0
 			? [
 					{
